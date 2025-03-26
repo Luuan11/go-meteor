@@ -1,6 +1,10 @@
 # Go-meteor
 
+<p align="center"
+    
 ![preview](https://github.com/user-attachments/assets/4f1a78c0-3e4d-4098-b732-daf8d9c63797)
+    
+</p>
 
 📜 Jogo feito com Golang e o pacote ebiten.
 
