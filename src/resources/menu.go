@@ -26,13 +26,13 @@ func NewMenu() *Menu {
 
 func (m *Menu) Draw(screen *ebiten.Image) {
 
-	text.Draw(screen, "GO: Space Invaders", assets.ScoreFont, 100, 300, color.White)
+	text.Draw(screen, "Space Invaders", assets.ScoreFont, 150, 300, color.White)
 
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(315, 150)
 	screen.DrawImage(assets.GopherPlayer, op)
 
-	text.Draw(screen, "Press ENTER to start..", assets.FontUi, 100, 400, color.White)
+	text.Draw(screen, "Press ENTER to start...", assets.FontUi, 100, 400, color.White)
 }
 
 func (m *Menu) Update() {

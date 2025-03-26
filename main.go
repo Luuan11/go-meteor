@@ -1,14 +1,13 @@
 package main
 
 import (
-	"go-meteor/game"
+	"go-meteor/src/application"
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
 func main() {
-
 	g := game.NewGame()
 
 	err := ebiten.RunGame(g)

@@ -26,7 +26,7 @@ var PlanetsSprites = mustLoadImages("planets/*.png")
 var ScoreFont = mustLoadFont("font/font.ttf")
 var FontUi = mustLoadFont("font/fontui.ttf")
 
-var PowerUpSprites = mustLoadImage("powers/powerups.png")
+var PowerUpSprites = mustLoadImage("powers/powerup.png")
 var SuperPowerSprite = mustLoadImage("powers/superpower.png")
 
 func mustLoadImage(name string) *ebiten.Image {
