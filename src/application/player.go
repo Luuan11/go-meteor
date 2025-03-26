@@ -43,48 +43,55 @@ func NewPlayer(game *Game) *Player {
 }
 
 func (p *Player) Update() {
-	speed := 6.0
+    speed := 6.0
 
-	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
-		p.position.X -= speed
+    if ebiten.IsKeyPressed(ebiten.KeyLeft) {
+        p.position.X -= speed
+        if p.position.X < 0 {
+            p.position.X = 0 
+        }
+		
+    } else if ebiten.IsKeyPressed(ebiten.KeyRight) {
+        p.position.X += speed
+        bounds := p.sprite.Bounds()
+        maxX := float64(screenWidth) - float64(bounds.Dx())
+        if p.position.X > maxX {
+            p.position.X = maxX 
+        }
+    }
 
-	} else if ebiten.IsKeyPressed(ebiten.KeyRight) {
-		p.position.X += speed
+    p.shootCooldown.Update()
+    if p.shootCooldown.IsReady() && inpututil.IsKeyJustPressed(ebiten.KeySpace) {
+        p.shootCooldown.Reset()
 
-	}
+        bounds := p.sprite.Bounds()
+        halfW := float64(bounds.Dx()) / 2
+        halfH := float64(bounds.Dy()) / 2
 
-	p.shootCooldown.Update()
-	if p.shootCooldown.IsReady() && inpututil.IsKeyJustPressed(ebiten.KeySpace) {
-		p.shootCooldown.Reset()
+        spawnPos := Vector{
+            p.position.X + halfW,
+            p.position.Y - halfH/2,
+        }
 
-		bounds := p.sprite.Bounds()
-		halfW := float64(bounds.Dx()) / 2
-		halfH := float64(bounds.Dy()) / 2
+        bullet := NewLaser(p.game, spawnPos)
+        p.game.AddLaser(bullet)
 
-		spawnPos := Vector{
-			p.position.X + halfW,
-			p.position.Y - halfH/2,
-		}
+        if p.game.superPowerActive {
+            spawnLeftPos := Vector{
+                p.position.X - halfW,
+                p.position.Y,
+            }
+            spawnRightPos := Vector{
+                p.position.X + halfW*3,
+                p.position.Y,
+            }
 
-		bullet := NewLaser(p.game, spawnPos)
-		p.game.AddLaser(bullet)
-
-		if p.game.superPowerActive {
-			spawnLeftPos := Vector{
-				p.position.X - halfW,
-				p.position.Y,
-			}
-			spawnRightPos := Vector{
-				p.position.X + halfW*3,
-				p.position.Y,
-			}
-
-			bulletleft := NewLaser(p.game, spawnLeftPos)
-			bulletRight := NewLaser(p.game, spawnRightPos)
-			p.game.AddLaser(bulletleft)
-			p.game.AddLaser(bulletRight)
-		}
-	}
+            bulletleft := NewLaser(p.game, spawnLeftPos)
+            bulletRight := NewLaser(p.game, spawnRightPos)
+            p.game.AddLaser(bulletleft)
+            p.game.AddLaser(bulletRight)
+        }
+    }
 }
 
 func (p *Player) Draw(screen *ebiten.Image) {
