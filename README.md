@@ -29,3 +29,5 @@ Projeto interativo de um jogo feito totalmente com GO, sendo possivel controlar 
     $ go run main.go
 
 ---
+
+Made with 💜 by [Luan Fernando](https://www.linkedin.com/in/luan-fernando/).
