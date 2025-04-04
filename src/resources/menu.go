@@ -26,7 +26,7 @@ func NewMenu() *Menu {
 
 func (m *Menu) Draw(screen *ebiten.Image) {
 
-	text.Draw(screen, "Space Invaders", assets.ScoreFont, 150, 300, color.White)
+	text.Draw(screen, "Space GO", assets.ScoreFont, 150, 300, color.White)
 
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(315, 150)
