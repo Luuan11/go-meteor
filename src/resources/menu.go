@@ -39,6 +39,12 @@ func (m *Menu) Update() {
 	if ebiten.IsKeyPressed(ebiten.KeyEnter) {
 		m.readyToPlay = true
 	}
+
+	var touchIDs []ebiten.TouchID
+    touchIDs = ebiten.AppendTouchIDs(touchIDs)
+    if len(touchIDs) > 0 {
+        m.readyToPlay = true
+    }
 }
 
 func (m *Menu) IsReady() bool {
