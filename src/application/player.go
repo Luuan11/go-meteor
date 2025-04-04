@@ -60,15 +60,6 @@ func (p *Player) Update() {
         }
     }
 
-    if ebiten.IsKeyPressed(ebiten.KeyRight) {
-        p.position.X += speed
-        bounds := p.sprite.Bounds()
-        maxX := float64(screenWidth) - float64(bounds.Dx())
-        if p.position.X > maxX {
-            p.position.X = maxX
-        }
-    }
-
     if ebiten.IsKeyPressed(ebiten.KeyUp) {
         p.position.Y -= speed
         if p.position.Y < 0 {
