@@ -53,3 +53,34 @@ iframe {
     color: #a058e4;
     text-decoration: none;
 }
+
+@media (max-width: 768px) {
+    body {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    iframe {
+        width: 90%; 
+        height: auto;
+    }
+
+    .tutorial {
+        max-width: 100%;
+        width: 90%;
+        margin-top: 25px;
+        padding: 10px;
+    }
+
+    .tutorial h2 {
+        font-size: 24px; 
+    }
+
+    .tutorial p {
+        font-size: 16px; 
+    }
+
+    .credits {
+        font-size: 14px; 
+    }
+}
