@@ -25,7 +25,7 @@ const (
 
 type Game struct {
 	meteorSpawnTimer  *Timer
-	planetSpawnTimer   *Timer
+	planetSpawnTimer  *Timer
 	starSpawnTimer    *Timer
 	powerUpSpawnTimer *Timer
 	superPowerTimer   *Timer
@@ -39,18 +39,19 @@ type Game struct {
 	powerUps         []*PowerUp
 	superPowerActive bool
 
-	isStarted bool
-	score     int
+	isStarted  bool
+	score      int
+	isGameOver bool
 }
 
 func NewGame() *Game {
 	g := &Game{
-		meteorSpawnTimer: NewTimer(meteorSpawnTime),
-		starSpawnTimer:   NewTimer(starSpawnTime),
+		meteorSpawnTimer:  NewTimer(meteorSpawnTime),
+		starSpawnTimer:    NewTimer(starSpawnTime),
 		planetSpawnTimer:  NewTimer(planetSpawnTime),
 		powerUpSpawnTimer: NewTimer(powerUpSpawnTime),
 		superPowerTimer:   NewTimer(superPowerTime),
-		superPowerActive: false,
+		superPowerActive:  false,
 	}
 
 	g.player = NewPlayer(g)
@@ -60,6 +61,14 @@ func NewGame() *Game {
 }
 
 func (g *Game) Update() error {
+
+	if g.isGameOver {
+		if ebiten.IsKeyPressed(ebiten.KeyEnter) {
+			g.isGameOver = false
+			g.isStarted = false
+		}
+		return nil
+	}
 
 	g.starSpawnTimer.Update()
 	if g.starSpawnTimer.IsReady() {
@@ -167,6 +176,21 @@ func (g *Game) Update() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 
+	if g.isGameOver {
+		youDiedText := "YOU DIED"
+		youDiedBounds := text.BoundString(assets.FontUi, youDiedText)
+		youDiedX := (screenWidth - youDiedBounds.Dx()) / 2
+		text.Draw(screen, youDiedText, assets.FontUi, youDiedX, 300, color.White)
+
+		tryAgainText := "Press Enter to try again"
+		tryAgainBounds := text.BoundString(assets.FontUi, tryAgainText)
+		tryAgainX := (screenWidth - tryAgainBounds.Dx()) / 2
+		text.Draw(screen, tryAgainText, assets.FontUi, tryAgainX, 400, color.White)
+		
+		text.Draw(screen, fmt.Sprintf("Points: %d         High Score: %d", g.score, bestScore), assets.FontUi, 20, 570, color.White)
+		return
+	}
+
 	for _, b := range g.stars {
 		b.Draw(screen)
 	}
@@ -221,6 +245,7 @@ func (g *Game) Reset() {
 
 	g.score = 0
 	g.superPowerActive = false
+	g.isGameOver = true
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
