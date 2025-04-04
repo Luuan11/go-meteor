@@ -32,7 +32,7 @@ func (m *Menu) Draw(screen *ebiten.Image) {
 	op.GeoM.Translate(315, 150)
 	screen.DrawImage(assets.GopherPlayer, op)
 
-	text.Draw(screen, "Press ENTER to start...", assets.FontUi, 100, 400, color.White)
+	text.Draw(screen, "Press ENTER to start", assets.FontUi, 100, 400, color.White)
 }
 
 func (m *Menu) Update() {

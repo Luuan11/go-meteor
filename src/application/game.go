@@ -198,7 +198,6 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	scoreSprite.GeoM.Translate(60, 450)
 
-	text.Draw(screen, "________________________________", assets.FontUi, 0, 520, color.White)
 	text.Draw(screen, fmt.Sprintf("Points: %d            High Score: %d", g.score, bestScore), assets.FontUi, 20, 570, color.White)
 }
 
