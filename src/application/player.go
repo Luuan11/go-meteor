@@ -42,72 +42,96 @@ func NewPlayer(game *Game) *Player {
 	}
 }
 
-func (p *Player) Update() {
+func (p *Player) MoveLeft() {
     speed := 6.0
+    p.position.X -= speed
+    if p.position.X < 0 {
+        p.position.X = 0 
+    }
+}
 
+func (p *Player) MoveRight() {
+    speed := 6.0
+    p.position.X += speed
+    bounds := p.sprite.Bounds()
+    maxX := float64(screenWidth) - float64(bounds.Dx())
+    if p.position.X > maxX {
+        p.position.X = maxX 
+    }
+}
+
+func (p *Player) MoveUp() {
+    speed := 6.0
+    p.position.Y -= speed
+    if p.position.Y < 0 {
+        p.position.Y = 0 
+    }
+}
+
+func (p *Player) MoveDown() {
+    speed := 6.0
+    p.position.Y += speed
+    bounds := p.sprite.Bounds()
+    maxY := float64(screenHeight) - float64(bounds.Dy())
+    if p.position.Y > maxY {
+        p.position.Y = maxY 
+    }
+}
+
+func (p *Player) Shoot() {
+    if !p.shootCooldown.IsReady() {
+        return
+    }
+
+    p.shootCooldown.Reset()
+
+    bounds := p.sprite.Bounds()
+    halfW := float64(bounds.Dx()) / 2
+    halfH := float64(bounds.Dy()) / 2
+
+    spawnPos := Vector{
+        p.position.X + halfW,
+        p.position.Y - halfH/2,
+    }
+
+    bullet := NewLaser(p.game, spawnPos)
+    p.game.AddLaser(bullet)
+
+    if p.game.superPowerActive {
+        spawnLeftPos := Vector{
+            p.position.X - halfW,
+            p.position.Y,
+        }
+        spawnRightPos := Vector{
+            p.position.X + halfW*3,
+            p.position.Y,
+        }
+
+        bulletLeft := NewLaser(p.game, spawnLeftPos)
+        bulletRight := NewLaser(p.game, spawnRightPos)
+        p.game.AddLaser(bulletLeft)
+        p.game.AddLaser(bulletRight)
+    }
+}
+
+func (p *Player) Update() {
     if ebiten.IsKeyPressed(ebiten.KeyLeft) {
-        p.position.X -= speed
-        if p.position.X < 0 {
-            p.position.X = 0 
-        }
-		
-    } else if ebiten.IsKeyPressed(ebiten.KeyRight) {
-        p.position.X += speed
-        bounds := p.sprite.Bounds()
-        maxX := float64(screenWidth) - float64(bounds.Dx())
-        if p.position.X > maxX {
-            p.position.X = maxX 
-        }
+        p.MoveLeft()
     }
-
+    if ebiten.IsKeyPressed(ebiten.KeyRight) {
+        p.MoveRight()
+    }
     if ebiten.IsKeyPressed(ebiten.KeyUp) {
-        p.position.Y -= speed
-        if p.position.Y < 0 {
-            p.position.Y = 0 
-        }
+        p.MoveUp()
     }
-
     if ebiten.IsKeyPressed(ebiten.KeyDown) {
-        p.position.Y += speed
-        bounds := p.sprite.Bounds()
-        maxY := float64(screenHeight) - float64(bounds.Dy())
-        if p.position.Y > maxY {
-            p.position.Y = maxY 
-        }
+        p.MoveDown()
+    }
+    if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
+        p.Shoot()
     }
 
     p.shootCooldown.Update()
-    if p.shootCooldown.IsReady() && inpututil.IsKeyJustPressed(ebiten.KeySpace) {
-        p.shootCooldown.Reset()
-
-        bounds := p.sprite.Bounds()
-        halfW := float64(bounds.Dx()) / 2
-        halfH := float64(bounds.Dy()) / 2
-
-        spawnPos := Vector{
-            p.position.X + halfW,
-            p.position.Y - halfH/2,
-        }
-
-        bullet := NewLaser(p.game, spawnPos)
-        p.game.AddLaser(bullet)
-
-        if p.game.superPowerActive {
-            spawnLeftPos := Vector{
-                p.position.X - halfW,
-                p.position.Y,
-            }
-            spawnRightPos := Vector{
-                p.position.X + halfW*3,
-                p.position.Y,
-            }
-
-            bulletleft := NewLaser(p.game, spawnLeftPos)
-            bulletRight := NewLaser(p.game, spawnRightPos)
-            p.game.AddLaser(bulletleft)
-            p.game.AddLaser(bulletRight)
-        }
-    }
 }
 
 func (p *Player) Draw(screen *ebiten.Image) {
