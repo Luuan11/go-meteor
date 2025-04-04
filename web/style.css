@@ -63,11 +63,13 @@ iframe {
     iframe {
         width: 90%; 
         height: auto;
+        min-width: 300px; 
+        min-height: 300px; 
     }
 
     .tutorial {
-        max-width: 100%;
-        width: 90%;
+        max-width: 90%;
+        width: 87%;
         margin-top: 25px;
         padding: 10px;
     }
@@ -77,7 +79,7 @@ iframe {
     }
 
     .tutorial p {
-        font-size: 16px; 
+        font-size: 18px; 
     }
 
     .credits {
