@@ -37,3 +37,19 @@ iframe {
     margin: 5px 0;
     font-size: 20px;
 }
+
+.credits {
+    position: absolute;
+    bottom: 10px; 
+    left: 50%; 
+    transform: translateX(-50%);
+    color: white;
+    border-radius: 10px;
+    font-family: Arial, sans-serif;
+    text-align: center;
+}
+
+.credits a {
+    color: #a058e4;
+    text-decoration: none;
+}
