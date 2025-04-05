@@ -63,21 +63,22 @@ func NewGame() *Game {
 
 func (g *Game) Update() error {
 	if g.isGameOver {
-		if ebiten.IsKeyPressed(ebiten.KeyEnter) {
+
+		if ebiten.IsKeyPressed(ebiten.KeyEnter) || ebiten.IsKeyPressed(ebiten.KeySpace) {
 			g.isGameOver = false
 			g.isStarted = false
+			return nil
 		}
-		return nil
-	}
 
-	if g.isGameOver {
 		var touchIDs []ebiten.TouchID
 		touchIDs = ebiten.AppendTouchIDs(touchIDs)
 		if len(touchIDs) > 0 {
-			g.Reset()
-			g.isStarted = true
+			g.isGameOver = false
+			g.isStarted = false
 			return nil
 		}
+
+		return nil
 	}
 
 	g.starSpawnTimer.Update()
@@ -260,16 +261,16 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	text.Draw(screen, fmt.Sprintf("Points: %d            High Score: %d", g.score, bestScore), assets.FontUi, 20, 570, color.White)
 
-	drawButton(screen, "◀", 50, screenHeight-250)              // Esquerda
-	drawButton(screen, "▶", 190, screenHeight-250)             // Direita
-	drawButton(screen, "▲", 120, screenHeight-330)             // Cima
-	drawButton(screen, "▼", 120, screenHeight-170)             // Baixo
-	drawButton(screen, "●", screenWidth-150, screenHeight-250) // Outro botão (OK/ação/etc.)
+	drawButton(screen, "◀", 50, screenHeight-250)
+	drawButton(screen, "▶", 190, screenHeight-250)
+	drawButton(screen, "▲", 120, screenHeight-330)
+	drawButton(screen, "▼", 120, screenHeight-170)
+	drawButton(screen, "●", screenWidth-150, screenHeight-250)
 }
 
 func drawButton(screen *ebiten.Image, label string, x, y int) {
 	btnWidth, btnHeight := 80, 80
-	
+
 	ebitenutil.DrawRect(screen, float64(x), float64(y), float64(btnWidth), float64(btnHeight), color.RGBA{0, 0, 0, 100})
 
 	textBounds := text.BoundString(assets.ScoreFont, label)
