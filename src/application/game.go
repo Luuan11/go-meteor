@@ -187,25 +187,25 @@ func (g *Game) Update() error {
 	for _, id := range touchIDs {
         x, y := ebiten.TouchPosition(id)
 
-        if x >= 50 && x <= 130 && y >= screenHeight-180 && y <= screenHeight-100 {
-            g.player.MoveLeft()
-        }
-
-        if x >= 150 && x <= 230 && y >= screenHeight-180 && y <= screenHeight-100 {
-            g.player.MoveRight()
-        }
-
-        if x >= 100 && x <= 180 && y >= screenHeight-230 && y <= screenHeight-150 {
-            g.player.MoveUp()
-        }
-
-        if x >= 100 && x <= 180 && y >= screenHeight-130 && y <= screenHeight-50 {
-            g.player.MoveDown()
-        }
-
-        if x >= screenWidth-120 && x <= screenWidth-40 && y >= screenHeight-180 && y <= screenHeight-100 {
-            g.player.Shoot()
-        }
+        if x >= 50 && x <= 50+80 && y >= screenHeight-250 && y <= screenHeight-250+80 {
+			g.player.MoveLeft()
+		}
+	
+		if x >= 190 && x <= 190+80 && y >= screenHeight-250 && y <= screenHeight-250+80{
+			g.player.MoveRight()
+		}
+	
+		if x >= 120 && x <= 120+80 && y >= screenHeight-330 && y <= screenHeight-330+80{
+			g.player.MoveUp()
+		}
+	
+		if x >= 120 && x <= 120+80 && y >= screenHeight-170 && y <= screenHeight-170+80{
+			g.player.MoveDown()
+		}
+	
+		if x >= screenWidth-150 && x <= screenWidth-150+80 && y >= screenHeight-250 && y <= screenHeight-250+80 {
+			g.player.Shoot()
+		}
     }
 
 	return nil
