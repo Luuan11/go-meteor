@@ -2,21 +2,20 @@
 
 body {
     display: flex;
-    flex-direction: column; 
+    flex-direction: row;
     justify-content: center; 
-    align-items: center;
-    gap: 20px;
+    align-items: center; 
+    gap: 20px; 
     font-family: 'Pixelify Sans', Arial, sans-serif;
     background-color: #232424; 
     color: white; 
     height: 100vh; 
-    margin: 0; 
+    margin: 0;
 }
 
 iframe {
     border: 1px solid #fafafa; 
     max-width: 100%; 
-    height: auto;
 }
 
 .tutorial {
@@ -64,9 +63,6 @@ iframe {
     body {
         display: flex;
         flex-direction: column; 
-        justify-content: center; 
-        align-items: center; 
-        gap: 10px;
     }
 
     iframe {
@@ -80,6 +76,7 @@ iframe {
         width: 90%; 
         margin-top: 15px; 
         text-align: center; 
+        border: none;
     }
 
     .tutorial h2 {
@@ -90,7 +87,7 @@ iframe {
         font-size: 18px; 
     }
 
-    .credits {
+    .credits { 
         font-size: 14px; 
     }
 }
