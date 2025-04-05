@@ -185,28 +185,28 @@ func (g *Game) Update() error {
 	touchIDs = ebiten.AppendTouchIDs(touchIDs)
 
 	for _, id := range touchIDs {
-        x, y := ebiten.TouchPosition(id)
+		x, y := ebiten.TouchPosition(id)
 
-        if x >= 50 && x <= 50+80 && y >= screenHeight-250 && y <= screenHeight-250+80 {
+		if x >= 50 && x <= 50+80 && y >= screenHeight-250 && y <= screenHeight-250+80 {
 			g.player.MoveLeft()
 		}
-	
-		if x >= 190 && x <= 190+80 && y >= screenHeight-250 && y <= screenHeight-250+80{
+
+		if x >= 190 && x <= 190+80 && y >= screenHeight-250 && y <= screenHeight-250+80 {
 			g.player.MoveRight()
 		}
-	
-		if x >= 120 && x <= 120+80 && y >= screenHeight-330 && y <= screenHeight-330+80{
+
+		if x >= 120 && x <= 120+80 && y >= screenHeight-330 && y <= screenHeight-330+80 {
 			g.player.MoveUp()
 		}
-	
-		if x >= 120 && x <= 120+80 && y >= screenHeight-170 && y <= screenHeight-170+80{
+
+		if x >= 120 && x <= 120+80 && y >= screenHeight-170 && y <= screenHeight-170+80 {
 			g.player.MoveDown()
 		}
-	
+
 		if x >= screenWidth-150 && x <= screenWidth-150+80 && y >= screenHeight-250 && y <= screenHeight-250+80 {
 			g.player.Shoot()
 		}
-    }
+	}
 
 	return nil
 }
@@ -260,22 +260,25 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	text.Draw(screen, fmt.Sprintf("Points: %d            High Score: %d", g.score, bestScore), assets.FontUi, 20, 570, color.White)
 
-	drawButton(screen, "←", 50, screenHeight-250)
-	drawButton(screen, "→", 190, screenHeight-250)
-	drawButton(screen, "↑", 120, screenHeight-330)
-	drawButton(screen, "↓", 120, screenHeight-170)
-	drawButton(screen, "X", screenWidth-150, screenHeight-250)
+	drawButton(screen, "◀", 50, screenHeight-250)              // Esquerda
+	drawButton(screen, "▶", 190, screenHeight-250)             // Direita
+	drawButton(screen, "▲", 120, screenHeight-330)             // Cima
+	drawButton(screen, "▼", 120, screenHeight-170)             // Baixo
+	drawButton(screen, "●", screenWidth-150, screenHeight-250) // Outro botão (OK/ação/etc.)
 }
 
 func drawButton(screen *ebiten.Image, label string, x, y int) {
 	btnWidth, btnHeight := 80, 80
-	borderWidth := 2
+	
+	ebitenutil.DrawRect(screen, float64(x), float64(y), float64(btnWidth), float64(btnHeight), color.RGBA{0, 0, 0, 100})
 
-	ebitenutil.DrawRect(screen, float64(x-borderWidth), float64(y-borderWidth), float64(btnWidth+2*borderWidth), float64(btnHeight+2*borderWidth), color.RGBA{255, 255, 255, 0})
+	textBounds := text.BoundString(assets.ScoreFont, label)
+	textWidth := textBounds.Dx()
+	textHeight := textBounds.Dy()
+	textX := x + (btnWidth-textWidth)/2
+	textY := y + (btnHeight-textHeight)/2 + textHeight
 
-	ebitenutil.DrawRect(screen, float64(x), float64(y), float64(btnWidth), float64(btnHeight), color.RGBA{0, 0, 0, 128})
-
-	text.Draw(screen, label, assets.FontUi, x+20, y+50, color.White)
+	text.Draw(screen, label, assets.FontBtn, textX, textY, color.White)
 }
 
 func (g *Game) AddLaser(l *Laser) {

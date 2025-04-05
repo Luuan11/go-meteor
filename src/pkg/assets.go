@@ -25,6 +25,7 @@ var PlanetsSprites = mustLoadImages("planets/*.png")
 
 var ScoreFont = mustLoadFont("font/font.ttf")
 var FontUi = mustLoadFont("font/fontui.ttf")
+var FontBtn = mustLoadFont("font/fontbtn.ttf")
 
 var PowerUpSprites = mustLoadImage("powers/powerup.png")
 var SuperPowerSprite = mustLoadImage("powers/superpower.png")
