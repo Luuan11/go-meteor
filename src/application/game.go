@@ -185,28 +185,28 @@ func (g *Game) Update() error {
 	touchIDs = ebiten.AppendTouchIDs(touchIDs)
 
 	for _, id := range touchIDs {
-		x, y := ebiten.TouchPosition(id)
+        x, y := ebiten.TouchPosition(id)
 
-		if x >= 50 && x <= 130 && y >= screenHeight-180 && y <= screenHeight-100 {
-			g.player.MoveLeft()
-		}
+        if x >= 50 && x <= 130 && y >= screenHeight-180 && y <= screenHeight-100 {
+            g.player.MoveLeft()
+        }
 
-		if x >= 150 && x <= 230 && y >= screenHeight-180 && y <= screenHeight-100 {
-			g.player.MoveRight()
-		}
+        if x >= 150 && x <= 230 && y >= screenHeight-180 && y <= screenHeight-100 {
+            g.player.MoveRight()
+        }
 
-		if x >= 100 && x <= 180 && y >= screenHeight-230 && y <= screenHeight-150 {
-			g.player.MoveUp()
-		}
+        if x >= 100 && x <= 180 && y >= screenHeight-230 && y <= screenHeight-150 {
+            g.player.MoveUp()
+        }
 
-		if x >= 100 && x <= 180 && y >= screenHeight-130 && y <= screenHeight-50 {
-			g.player.MoveDown()
-		}
+        if x >= 100 && x <= 180 && y >= screenHeight-130 && y <= screenHeight-50 {
+            g.player.MoveDown()
+        }
 
-		if x >= screenWidth-120 && x <= screenWidth-40 && y >= screenHeight-180 && y <= screenHeight-100 {
-			g.player.Shoot()
-		}
-	}
+        if x >= screenWidth-120 && x <= screenWidth-40 && y >= screenHeight-180 && y <= screenHeight-100 {
+            g.player.Shoot()
+        }
+    }
 
 	return nil
 }
@@ -275,13 +275,7 @@ func drawButton(screen *ebiten.Image, label string, x, y int) {
 
 	ebitenutil.DrawRect(screen, float64(x), float64(y), float64(btnWidth), float64(btnHeight), color.RGBA{0, 0, 0, 128})
 
-	textBounds := text.BoundString(assets.FontUi, label)
-	textWidth := textBounds.Dx()
-	textHeight := textBounds.Dy()
-	textX := x + (btnWidth-textWidth)/2
-	textY := y + (btnHeight-textHeight)/2 + textHeight
-
-	text.Draw(screen, label, assets.FontUi, textX, textY, color.White)
+	text.Draw(screen, label, assets.FontUi, x+20, y+50, color.White)
 }
 
 func (g *Game) AddLaser(l *Laser) {
