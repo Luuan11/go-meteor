@@ -22,7 +22,6 @@ iframe {
     max-width: 350px;
     border: 1px solid #fafafa;
     padding: 0 25px 25px 25px;
-    text-align: center;
 }
 
 .tutorial h2 {
@@ -75,7 +74,6 @@ iframe {
     .tutorial {
         width: 90%; 
         margin-top: 15px; 
-        text-align: center; 
         border: none;
     }
 
