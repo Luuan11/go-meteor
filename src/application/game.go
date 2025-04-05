@@ -252,16 +252,16 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	text.Draw(screen, fmt.Sprintf("Points: %d            High Score: %d", g.score, bestScore), assets.FontUi, 20, 570, color.White)
 
-	drawButton(screen, "←", 50, screenHeight-180)
-	drawButton(screen, "→", 150, screenHeight-180)
-	drawButton(screen, "↑", 100, screenHeight-230)
+	drawButton(screen, "←", 50, screenHeight-200)
+	drawButton(screen, "→", 150, screenHeight-200)
+	drawButton(screen, "↑", 100, screenHeight-270)
 	drawButton(screen, "↓", 100, screenHeight-130)
 	drawButton(screen, "X", screenWidth-120, screenHeight-180)
 }
 
 func drawButton(screen *ebiten.Image, label string, x, y int) {
-	btnWidth, btnHeight := 80, 80
-	ebitenutil.DrawRect(screen, float64(x), float64(y), float64(btnWidth), float64(btnHeight), color.RGBA{0, 0, 0, 128})
+	btnWidth, btnHeight := 100, 100
+	ebitenutil.DrawRect(screen, float64(x), float64(y), float64(btnWidth), float64(btnHeight), color.RGBA{255, 99, 71, 0})
 	text.Draw(screen, label, assets.FontUi, x+20, y+50, color.White)
 }
 
