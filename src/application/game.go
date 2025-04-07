@@ -64,7 +64,7 @@ func NewGame() *Game {
 func (g *Game) Update() error {
 	if g.isGameOver {
 
-		if ebiten.IsKeyPressed(ebiten.KeyEnter) || ebiten.IsKeyPressed(ebiten.KeySpace) {
+		if ebiten.IsKeyPressed(ebiten.KeyEnter) {
 			g.isGameOver = false
 			g.isStarted = false
 			return nil
