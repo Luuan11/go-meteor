@@ -48,13 +48,10 @@ func init() {
 	backgroundMusic = mustLoadSound("sounds/music.mp3")
 	backgroundMusic.SetVolume(1)
 	backgroundMusic.Play()
+	log.Print("background music started")
 }
 
 func mustLoadSound(name string) *audio.Player {
-	if AudioContext == nil {
-		log.Fatal("Audio context not initialized")
-	}
-
 	f, err := assets.Open(name)
 	if err != nil {
 		log.Fatalf("Error opening the file: %v", err)
