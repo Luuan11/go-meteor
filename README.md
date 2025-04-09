@@ -17,6 +17,11 @@ Projeto interativo de um jogo feito totalmente com GO, sendo possivel controlar 
 - Go
 - Pacote ebiten
 
+## ✅ Features:
+- Jogavel tanto Desktop ou Mobile
+- PowerUps Adicionado
+- Tutorial web responsive
+
 ## Instalação
 
     - Clonar repositorio 
