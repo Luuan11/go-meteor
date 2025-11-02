@@ -1,29 +1,31 @@
-package game
+package entities
 
 import (
-	"go-meteor/src/pkg"
+	"go-meteor/internal/config"
+	"go-meteor/internal/systems"
+	assets "go-meteor/src/pkg"
 	"math/rand"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
 type Star struct {
-	position      Vector
+	position      systems.Vector
 	rotation      float64
-	movement      Vector
+	movement      systems.Vector
 	rotationSpeed float64
 	sprite        *ebiten.Image
 }
 
 func NewStar() *Star {
-	pos := Vector{
-		X: rand.Float64() * screenWidth,
+	pos := systems.Vector{
+		X: rand.Float64() * config.ScreenWidth,
 		Y: -100,
 	}
 
 	velocity := float64(6)
 
-	movement := Vector{
+	movement := systems.Vector{
 		X: 0,
 		Y: velocity,
 	}
@@ -36,6 +38,10 @@ func NewStar() *Star {
 		sprite:   sprite,
 	}
 	return m
+}
+
+func (m *Star) IsOutOfScreen() bool {
+	return m.position.Y > config.ScreenHeight+100
 }
 
 func (m *Star) Update() {

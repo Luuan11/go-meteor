@@ -1,4 +1,4 @@
-package game
+package systems
 
 import (
 	"time"
@@ -30,4 +30,15 @@ func (t *Timer) IsReady() bool {
 
 func (t *Timer) Reset() {
 	t.currentTicks = 0
+}
+
+func (t *Timer) Progress() float64 {
+	if t.targetTicks == 0 {
+		return 1.0
+	}
+	return float64(t.currentTicks) / float64(t.targetTicks)
+}
+
+func (t *Timer) CurrentTicks() int {
+	return t.currentTicks
 }

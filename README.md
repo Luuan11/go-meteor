@@ -7,31 +7,35 @@
 
 </p>
 
-## <p align="center"> <a href="https://luuan11.github.io/go-meteor/">Clique aqui para testar esse jogo!</a> </p>
+## <p align="center"> <a href="https://luuan11.github.io/go-meteor/">Click here to play this game!</a> </p>
 
-📜 Jogo feito com Golang e o pacote ebiten.
+📜 Game made with Golang and the ebiten package.
 
-## 💬 Sobre
-Projeto interativo de um jogo feito totalmente com GO, sendo possivel controlar seu jogador, destruir meteoros, coletar poderes tudo para aumentar sua pontuação.
+## 💬 About
+Interactive game project made entirely with GO, where you can control your player, destroy meteors, collect power-ups, all to increase your score.
 
-## 💡 Tecnologias:
+## 💡 Technologies:
 - Go
-- Pacote ebiten
+- Ebiten package
 
 ## ✅ Features:
-- Jogavel tanto Desktop ou Mobile
-- PowerUps Adicionado
-- Tutorial web responsive
+- Playable on both Desktop and Mobile
+- Power-Ups System (Super Shot, Health Recovery, Shield)
+- Audio System (Background Music and Sound Effects)
+- Combo System
+- Wave System
+- Responsive Web Tutorial
+- Clean Architecture
 
-## Instalação
+## Installation
 
-    - Clonar repositorio 
+    - Clone repository 
     $ git clone https://github.com/Luuan11/go-meteor.git 
 
-    - Instalar dependencias
+    - Install dependencies
     $ go mod tidy
 
-    - Rodar aplicativo
+    - Run application
     $ go run main.go
 
 ---
