@@ -1,0 +1,44 @@
+package systems
+
+import (
+	"time"
+
+	"github.com/hajimehoshi/ebiten/v2"
+)
+
+type Timer struct {
+	currentTicks int
+	targetTicks  int
+}
+
+func NewTimer(d time.Duration) *Timer {
+	return &Timer{
+		currentTicks: 0,
+		targetTicks:  int(d.Milliseconds()) * ebiten.TPS() / 2500,
+	}
+}
+
+func (t *Timer) Update() {
+	if t.currentTicks < t.targetTicks {
+		t.currentTicks++
+	}
+}
+
+func (t *Timer) IsReady() bool {
+	return t.currentTicks >= t.targetTicks
+}
+
+func (t *Timer) Reset() {
+	t.currentTicks = 0
+}
+
+func (t *Timer) Progress() float64 {
+	if t.targetTicks == 0 {
+		return 1.0
+	}
+	return float64(t.currentTicks) / float64(t.targetTicks)
+}
+
+func (t *Timer) CurrentTicks() int {
+	return t.currentTicks
+}
