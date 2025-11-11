@@ -5,6 +5,7 @@
 package core
 
 import (
+	"go-meteor/internal/config"
 	"syscall/js"
 )
 
@@ -34,7 +35,7 @@ func (g *Game) showNameInputModal() {
 
 			g.notifyWebLeaderboard(name, g.score)
 		}
-		g.Reset()
+		g.state = config.StateGameOver
 		return nil
 	})
 
