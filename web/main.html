@@ -6,20 +6,23 @@
     <title>Lets play</title>
 </head>
 <body>
-</body>
-<script src="wasm_exec.js"></script>
-<script>
-// Polyfill
-if (!WebAssembly.instantiateStreaming) {
-    WebAssembly.instantiateStreaming = async (resp, importObject) => {
-        const source = await (await resp).arrayBuffer();
-        return await WebAssembly.instantiate(source, importObject);
-    };
-}
+    <script src="wasm_exec.js"></script>
+    <script>
+    if (!WebAssembly.instantiateStreaming) {
+        WebAssembly.instantiateStreaming = async (resp, importObject) => {
+            const source = await (await resp).arrayBuffer();
+            return await WebAssembly.instantiate(source, importObject);
+        };
+    }
 
-const go = new Go();
-WebAssembly.instantiateStreaming(fetch("go-meteor.wasm"), go.importObject).then(result => {
-    go.run(result.instance);
-});
-</script>
+    const go = new Go();
+    WebAssembly.instantiateStreaming(fetch("go-meteor.wasm"), go.importObject)
+        .then(result => {
+            go.run(result.instance);
+        })
+        .catch(err => {
+            console.error("Failed to load WASM:", err);
+        });
+    </script>
+</body>
 </html>
