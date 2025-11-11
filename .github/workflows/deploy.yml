@@ -30,9 +30,9 @@ jobs:
         run: |
           GOOS=js GOARCH=wasm go build -o web/go-meteor.wasm main.go
 
-      - name: Copy WASM exec
+      - name: Download WASM exec
         run: |
-          cp "$(go env GOROOT)/misc/wasm/wasm_exec.js" web/
+          curl -o web/wasm_exec.js https://raw.githubusercontent.com/golang/go/master/misc/wasm/wasm_exec.js
 
       - name: Generate Firebase Config
         run: |
