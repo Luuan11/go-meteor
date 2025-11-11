@@ -316,7 +316,14 @@ func (g *Game) updatePaused() error {
 }
 
 func (g *Game) updateGameOver() error {
-	if ebiten.IsKeyPressed(ebiten.KeyEnter) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) || inpututil.IsKeyJustPressed(ebiten.KeySpace) {
+		g.Reset()
+		g.menu.Reset()
+		g.state = config.StateMenu
+		return nil
+	}
+
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		g.Reset()
 		g.menu.Reset()
 		g.state = config.StateMenu
@@ -324,7 +331,7 @@ func (g *Game) updateGameOver() error {
 	}
 
 	var touchIDs []ebiten.TouchID
-	touchIDs = ebiten.AppendTouchIDs(touchIDs)
+	touchIDs = inpututil.AppendJustPressedTouchIDs(touchIDs)
 	if len(touchIDs) > 0 {
 		g.Reset()
 		g.menu.Reset()
