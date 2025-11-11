@@ -54,11 +54,12 @@ func init() {
 		log.Fatalf("Error creating audio context: %v", err)
 	}
 
-	backgroundMusic = mustLoadSound("sounds/music.mp3")
-	if backgroundMusic != nil {
-		backgroundMusic.SetVolume(1.0)
-		backgroundMusic.Play()
-	}
+	// Background music disabled - uncomment to enable
+	// backgroundMusic = mustLoadSound("sounds/music.mp3")
+	// if backgroundMusic != nil {
+	// 	backgroundMusic.SetVolume(0.4)
+	// 	backgroundMusic.Play()
+	// }
 
 	shootSoundData = tryLoadSoundData("sounds/shoot.mp3")
 	explosionSoundData = tryLoadSoundData("sounds/explosion.mp3")
@@ -106,7 +107,7 @@ func PlaySound(soundData []byte) {
 		return
 	}
 
-	player.SetVolume(0.5)
+	player.SetVolume(0.8)
 	player.Play()
 }
 
@@ -130,18 +131,19 @@ func PlayGameOverSound() {
 	PlaySound(gameOverSoundData)
 }
 
-// UpdateAudio deve ser chamado a cada frame para fazer loop da música
+// UpdateAudio - Background music loop disabled
 func UpdateAudio() {
-	if backgroundMusic == nil {
-		return
-	}
-
-	if !backgroundMusic.IsPlaying() {
-		if err := backgroundMusic.Rewind(); err != nil {
-			return
-		}
-		backgroundMusic.Play()
-	}
+	// Uncomment to enable background music loop
+	// if backgroundMusic == nil {
+	// 	return
+	// }
+	//
+	// if !backgroundMusic.IsPlaying() {
+	// 	if err := backgroundMusic.Rewind(); err != nil {
+	// 		return
+	// 	}
+	// 	backgroundMusic.Play()
+	// }
 }
 
 // GetMusicVolume retorna o volume atual da música
