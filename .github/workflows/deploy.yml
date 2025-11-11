@@ -61,6 +61,8 @@ jobs:
           file web/go-meteor.wasm
           file web/wasm_exec.js
           file web/firebase-config.js
+          echo "=== Content of firebase-config.js ==="
+          head -5 web/firebase-config.js
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -68,7 +70,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './web'
+          path: 'web'
+          retention-days: 1
 
   deploy:
     environment:
