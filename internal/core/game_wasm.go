@@ -1,4 +1,5 @@
 // go:build js && wasm
+//go:build js && wasm
 // +build js,wasm
 
 package core
@@ -25,12 +26,12 @@ func (g *Game) showNameInputModal() {
 			name := args[0].String()
 			g.playerName = name
 			g.leaderboard.AddScore(name, g.score)
-			
+
 			data, err := g.leaderboard.ToJSON()
 			if err == nil {
 				g.storage.SaveLeaderboard(data)
 			}
-			
+
 			g.notifyWebLeaderboard(name, g.score)
 		}
 		g.Reset()

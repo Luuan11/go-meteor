@@ -117,7 +117,7 @@ func (g *Game) Update() error {
 		return g.updatePaused()
 	case config.StateGameOver:
 		return g.updateGameOver()
-    
+
 	}
 
 	return nil
@@ -335,8 +335,6 @@ func (g *Game) updateGameOver() error {
 	return nil
 }
 
-
-
 func (g *Game) updateStars() {
 	g.starSpawnTimer.Update()
 	if g.starSpawnTimer.IsReady() {
@@ -497,7 +495,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		g.pauseMenu.Draw(screen)
 	case config.StateGameOver:
 		g.drawGameOver(screen)
-    
+
 	}
 }
 
@@ -553,7 +551,7 @@ func (g *Game) drawUI(screen *ebiten.Image) {
 	highScoreWidth := font.MeasureString(assets.FontUi, highScoreText)
 	highScoreX := config.ScreenWidth - highScoreWidth.Ceil() - 20
 	text.Draw(screen, highScoreText, assets.FontUi, highScoreX, 570, color.White)
-	
+
 	ui.DrawPauseIcon(screen, g.pauseIconX, g.pauseIconY)
 
 	if g.isMobile {
