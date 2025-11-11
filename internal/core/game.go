@@ -15,7 +15,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text"
-	"github.com/hajimehoshi/ebiten/v2/vector"
 	"golang.org/x/image/font"
 )
 
@@ -118,8 +117,7 @@ func (g *Game) Update() error {
 		return g.updatePaused()
 	case config.StateGameOver:
 		return g.updateGameOver()
-	case config.StateNameInput:
-		return g.updateNameInput()
+    
 	}
 
 	return nil
@@ -337,41 +335,7 @@ func (g *Game) updateGameOver() error {
 	return nil
 }
 
-func (g *Game) updateNameInput() error {
-	runes := ebiten.AppendInputChars(nil)
-	for _, r := range runes {
-		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == ' ' {
-			if len(g.playerName) < 15 {
-				g.playerName += string(r)
-			}
-		}
-	}
 
-	if inpututil.IsKeyJustPressed(ebiten.KeyBackspace) {
-		if len(g.playerName) > 0 {
-			g.playerName = g.playerName[:len(g.playerName)-1]
-		}
-	}
-
-	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) && len(g.playerName) > 0 {
-		g.addScoreToLeaderboard(g.playerName, g.score)
-		g.playerName = ""
-		g.Reset()
-		g.menu.Reset()
-		g.state = config.StateMenu
-		return nil
-	}
-
-	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
-		g.playerName = ""
-		g.Reset()
-		g.menu.Reset()
-		g.state = config.StateMenu
-		return nil
-	}
-
-	return nil
-}
 
 func (g *Game) updateStars() {
 	g.starSpawnTimer.Update()
@@ -426,7 +390,7 @@ func (g *Game) checkCollisions() {
 			if isDead {
 				g.saveHighScore()
 				if g.leaderboard.IsTopScore(g.score) {
-					g.state = config.StateNameInput
+					g.showNameInputModal()
 					g.isTopScore = true
 				} else {
 					g.state = config.StateGameOver
@@ -533,8 +497,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		g.pauseMenu.Draw(screen)
 	case config.StateGameOver:
 		g.drawGameOver(screen)
-	case config.StateNameInput:
-		g.drawNameInput(screen)
+    
 	}
 }
 
@@ -590,52 +553,7 @@ func (g *Game) drawUI(screen *ebiten.Image) {
 	highScoreWidth := font.MeasureString(assets.FontUi, highScoreText)
 	highScoreX := config.ScreenWidth - highScoreWidth.Ceil() - 20
 	text.Draw(screen, highScoreText, assets.FontUi, highScoreX, 570, color.White)
-
-	if g.superPowerActive {
-		powerText := "SUPER POWER!"
-		powerWidth := font.MeasureString(assets.FontUi, powerText)
-		powerX := (config.ScreenWidth - powerWidth.Ceil()) / 2
-		powerY := 40
-
-		g.drawRainbowText(screen, powerText, assets.FontUi, powerX, powerY)
-
-		barWidth := 200.0
-		barHeight := 20.0
-		barX := float32(config.ScreenWidth)/2 - float32(barWidth)/2
-		barY := float32(60.0)
-
-		vector.DrawFilledRect(screen, barX-2, barY-2, float32(barWidth)+4, float32(barHeight)+4, color.White, false)
-		vector.DrawFilledRect(screen, barX, barY, float32(barWidth), float32(barHeight), color.RGBA{50, 50, 50, 255}, false)
-
-		progress := 1.0 - g.superPowerTimer.Progress()
-		fillWidth := float32(barWidth) * float32(progress)
-		vector.DrawFilledRect(screen, barX, barY, fillWidth, float32(barHeight), color.RGBA{255, 200, 0, 255}, false)
-	}
-
-	if g.player.HasShield() {
-		shieldText := "SHIELD ACTIVE"
-		shieldWidth := font.MeasureString(assets.FontUi, shieldText)
-		shieldX := (config.ScreenWidth - shieldWidth.Ceil()) / 2
-		shieldY := 120
-		shieldColor := color.RGBA{30, 144, 255, 255}
-		text.Draw(screen, shieldText, assets.FontUi, shieldX, shieldY, shieldColor)
-	}
-
-	if g.showLifeNotification {
-		lifeText := "+1 LIFE"
-		lifeWidth := font.MeasureString(assets.FontUi, lifeText)
-		lifeX := (config.ScreenWidth - lifeWidth.Ceil()) / 2
-		lifeY := 150
-
-		alpha := uint8(255)
-		if g.lifeNotificationTimer < 30 {
-			alpha = uint8(float64(g.lifeNotificationTimer) * 255.0 / 30.0)
-		}
-
-		lifeColor := color.RGBA{50, 255, 50, alpha}
-		text.Draw(screen, lifeText, assets.FontUi, lifeX, lifeY, lifeColor)
-	}
-
+	
 	ui.DrawPauseIcon(screen, g.pauseIconX, g.pauseIconY)
 
 	if g.isMobile {
@@ -662,54 +580,6 @@ func (g *Game) drawGameOver(screen *ebiten.Image) {
 	highScoreWidth := font.MeasureString(assets.FontUi, highScoreText)
 	highScoreX := config.ScreenWidth - highScoreWidth.Ceil() - 20
 	text.Draw(screen, highScoreText, assets.FontUi, highScoreX, 570, color.White)
-}
-
-func (g *Game) drawNameInput(screen *ebiten.Image) {
-	vector.DrawFilledRect(screen, 0, 0, float32(config.ScreenWidth), float32(config.ScreenHeight), color.RGBA{0, 0, 0, 200}, false)
-
-	congratsText := "TOP 10 SCORE!"
-	congratsWidth := font.MeasureString(assets.FontUi, congratsText)
-	congratsX := (config.ScreenWidth - congratsWidth.Ceil()) / 2
-	congratsColor := color.RGBA{255, 215, 0, 255}
-	text.Draw(screen, congratsText, assets.FontUi, congratsX, 200, congratsColor)
-
-	scoreText := fmt.Sprintf("Your Score: %d", g.score)
-	scoreWidth := font.MeasureString(assets.FontSmall, scoreText)
-	scoreX := (config.ScreenWidth - scoreWidth.Ceil()) / 2
-	text.Draw(screen, scoreText, assets.FontSmall, scoreX, 250, color.White)
-
-	instructionText := "Enter your name:"
-	instructionWidth := font.MeasureString(assets.FontSmall, instructionText)
-	instructionX := (config.ScreenWidth - instructionWidth.Ceil()) / 2
-	text.Draw(screen, instructionText, assets.FontSmall, instructionX, 300, color.White)
-
-	boxWidth := float32(400)
-	boxHeight := float32(50)
-	boxX := float32(config.ScreenWidth)/2 - boxWidth/2
-	boxY := float32(330)
-
-	vector.DrawFilledRect(screen, boxX, boxY, boxWidth, boxHeight, color.RGBA{40, 40, 40, 255}, false)
-	vector.DrawFilledRect(screen, boxX, boxY, boxWidth, boxHeight, color.White, true)
-
-	nameText := g.playerName
-	if len(nameText) == 0 {
-		nameText = "_"
-	} else {
-		if (ebiten.TPS()/2)%2 == 0 {
-			nameText += "_"
-		}
-	}
-
-	nameWidth := font.MeasureString(assets.FontSmall, nameText)
-	nameX := int(boxX) + (int(boxWidth)-nameWidth.Ceil())/2
-	nameY := int(boxY) + 35
-	text.Draw(screen, nameText, assets.FontSmall, nameX, nameY, color.White)
-
-	submitText := "Press ENTER to submit (ESC to skip)"
-	submitWidth := font.MeasureString(assets.FontSmall, submitText)
-	submitX := (config.ScreenWidth - submitWidth.Ceil()) / 2
-	submitColor := color.RGBA{150, 150, 150, 255}
-	text.Draw(screen, submitText, assets.FontSmall, submitX, 450, submitColor)
 }
 
 func (g *Game) AddLaser(l *entities.Laser) {
