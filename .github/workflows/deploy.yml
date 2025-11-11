@@ -64,13 +64,19 @@ jobs:
           echo "=== Content of firebase-config.js ==="
           head -5 web/firebase-config.js
 
+      - name: Create artifact directory
+        run: |
+          mkdir -p _site
+          cp -r web/* _site/
+          ls -lah _site/
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'web'
+          path: '_site'
           retention-days: 1
 
   deploy:
