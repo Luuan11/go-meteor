@@ -48,8 +48,15 @@ jobs:
             measurementId: "${{ secrets.FIREBASE_MEASUREMENT_ID }}"
           };
           EOF
-          echo "Firebase config generated, checking file:"
-          cat web/firebase-config.js
+
+      - name: List web directory contents
+        run: |
+          echo "Contents of web directory:"
+          ls -lah web/
+          echo "Checking if files exist:"
+          test -f web/go-meteor.wasm && echo "✓ go-meteor.wasm exists" || echo "✗ go-meteor.wasm missing"
+          test -f web/wasm_exec.js && echo "✓ wasm_exec.js exists" || echo "✗ wasm_exec.js missing"
+          test -f web/firebase-config.js && echo "✓ firebase-config.js exists" || echo "✗ firebase-config.js missing"
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
