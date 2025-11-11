@@ -8,15 +8,18 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <iframe src="main.html" width="800" height="600"></iframe>
-    <div class="credits">
-        <p>
-            Developed by 
-            <strong>
-                <a href="https://github.com/Luuan11">Luan Fernando</a>
-            </strong>
-        </p>
+    <div class="game-container">
+        <iframe src="main.html" width="800" height="600"></iframe>
+        
+        <!-- Leaderboard Panel -->
+        <div class="leaderboard-panel">
+            <h2 class="leaderboard-title">🏆 TOP 10</h2>
+            <div class="leaderboard-content" id="leaderboard-entries">
+                <p class="loading">Loading...</p>
+            </div>
+        </div>
     </div>
+
     <div class="tutorial">
         <h2>Tutorial</h2>
         <p><strong>Shoot:</strong> Press the <kbd>SPACE</kbd> key.</p>
@@ -27,5 +30,18 @@
         <p><kbd> ↓ </kbd> To move down</p>
     </div>
 
+    <div class="credits">
+        <p>
+            Developed by 
+            <strong>
+                <a href="https://github.com/Luuan11">Luan Fernando</a>
+            </strong>
+        </p>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="leaderboard-firebase.js"></script>
 </body>
 </html>

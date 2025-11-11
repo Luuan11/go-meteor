@@ -40,3 +40,6 @@ create_player_sprite.go
 # WebAssembly builds
 *.wasm
 web/wasm/
+
+# Firebase credentials
+web/firebase-config.js

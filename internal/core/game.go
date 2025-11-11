@@ -19,8 +19,6 @@ import (
 	"golang.org/x/image/font"
 )
 
-var bestScore = 0
-
 type Game struct {
 	state config.GameState
 
@@ -62,6 +60,13 @@ type Game struct {
 
 	lifeNotificationTimer int
 	showLifeNotification  bool
+
+	leaderboard *systems.Leaderboard
+	storage     systems.Storage
+	highScore   int
+
+	playerName string
+	isTopScore bool
 }
 
 func NewGame() *Game {
@@ -80,6 +85,8 @@ func NewGame() *Game {
 		wave:              1,
 		isMobile:          false,
 		touchDetected:     false,
+		leaderboard:       systems.NewLeaderboard(),
+		storage:           systems.NewStorage(),
 	}
 
 	g.joystick = input.NewJoystick(100, float64(config.ScreenHeight-120), 60)
@@ -90,6 +97,9 @@ func NewGame() *Game {
 	g.player = entities.NewPlayer(g)
 	g.menu = ui.NewMenu()
 	g.pauseMenu = ui.NewPauseMenu()
+
+	g.loadHighScore()
+	g.loadLeaderboard()
 
 	return g
 }
@@ -108,6 +118,8 @@ func (g *Game) Update() error {
 		return g.updatePaused()
 	case config.StateGameOver:
 		return g.updateGameOver()
+	case config.StateNameInput:
+		return g.updateNameInput()
 	}
 
 	return nil
@@ -325,6 +337,42 @@ func (g *Game) updateGameOver() error {
 	return nil
 }
 
+func (g *Game) updateNameInput() error {
+	runes := ebiten.AppendInputChars(nil)
+	for _, r := range runes {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == ' ' {
+			if len(g.playerName) < 15 {
+				g.playerName += string(r)
+			}
+		}
+	}
+
+	if inpututil.IsKeyJustPressed(ebiten.KeyBackspace) {
+		if len(g.playerName) > 0 {
+			g.playerName = g.playerName[:len(g.playerName)-1]
+		}
+	}
+
+	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) && len(g.playerName) > 0 {
+		g.addScoreToLeaderboard(g.playerName, g.score)
+		g.playerName = ""
+		g.Reset()
+		g.menu.Reset()
+		g.state = config.StateMenu
+		return nil
+	}
+
+	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
+		g.playerName = ""
+		g.Reset()
+		g.menu.Reset()
+		g.state = config.StateMenu
+		return nil
+	}
+
+	return nil
+}
+
 func (g *Game) updateStars() {
 	g.starSpawnTimer.Update()
 	if g.starSpawnTimer.IsReady() {
@@ -376,7 +424,14 @@ func (g *Game) checkCollisions() {
 		if m.Collider().Intersects(g.player.Collider()) {
 			isDead := g.player.TakeDamage()
 			if isDead {
-				g.state = config.StateGameOver
+				g.saveHighScore()
+				if g.leaderboard.IsTopScore(g.score) {
+					g.state = config.StateNameInput
+					g.isTopScore = true
+				} else {
+					g.state = config.StateGameOver
+					g.isTopScore = false
+				}
 			}
 			g.screenShake = config.ScreenShakeDuration
 			break
@@ -478,6 +533,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		g.pauseMenu.Draw(screen)
 	case config.StateGameOver:
 		g.drawGameOver(screen)
+	case config.StateNameInput:
+		g.drawNameInput(screen)
 	}
 }
 
@@ -529,7 +586,7 @@ func (g *Game) drawUI(screen *ebiten.Image) {
 	scoreText := fmt.Sprintf("Points: %d", g.score)
 	text.Draw(screen, scoreText, assets.FontUi, 20, 570, color.White)
 
-	highScoreText := fmt.Sprintf("HIGH SCORE: %d", bestScore)
+	highScoreText := fmt.Sprintf("HIGH SCORE: %d", g.highScore)
 	highScoreWidth := font.MeasureString(assets.FontUi, highScoreText)
 	highScoreX := config.ScreenWidth - highScoreWidth.Ceil() - 20
 	text.Draw(screen, highScoreText, assets.FontUi, highScoreX, 570, color.White)
@@ -601,10 +658,58 @@ func (g *Game) drawGameOver(screen *ebiten.Image) {
 	scoreText := fmt.Sprintf("Points: %d", g.score)
 	text.Draw(screen, scoreText, assets.FontUi, 20, 570, color.White)
 
-	highScoreText := fmt.Sprintf("High Score: %d", bestScore)
+	highScoreText := fmt.Sprintf("High Score: %d", g.highScore)
 	highScoreWidth := font.MeasureString(assets.FontUi, highScoreText)
 	highScoreX := config.ScreenWidth - highScoreWidth.Ceil() - 20
 	text.Draw(screen, highScoreText, assets.FontUi, highScoreX, 570, color.White)
+}
+
+func (g *Game) drawNameInput(screen *ebiten.Image) {
+	vector.DrawFilledRect(screen, 0, 0, float32(config.ScreenWidth), float32(config.ScreenHeight), color.RGBA{0, 0, 0, 200}, false)
+
+	congratsText := "TOP 10 SCORE!"
+	congratsWidth := font.MeasureString(assets.FontUi, congratsText)
+	congratsX := (config.ScreenWidth - congratsWidth.Ceil()) / 2
+	congratsColor := color.RGBA{255, 215, 0, 255}
+	text.Draw(screen, congratsText, assets.FontUi, congratsX, 200, congratsColor)
+
+	scoreText := fmt.Sprintf("Your Score: %d", g.score)
+	scoreWidth := font.MeasureString(assets.FontSmall, scoreText)
+	scoreX := (config.ScreenWidth - scoreWidth.Ceil()) / 2
+	text.Draw(screen, scoreText, assets.FontSmall, scoreX, 250, color.White)
+
+	instructionText := "Enter your name:"
+	instructionWidth := font.MeasureString(assets.FontSmall, instructionText)
+	instructionX := (config.ScreenWidth - instructionWidth.Ceil()) / 2
+	text.Draw(screen, instructionText, assets.FontSmall, instructionX, 300, color.White)
+
+	boxWidth := float32(400)
+	boxHeight := float32(50)
+	boxX := float32(config.ScreenWidth)/2 - boxWidth/2
+	boxY := float32(330)
+
+	vector.DrawFilledRect(screen, boxX, boxY, boxWidth, boxHeight, color.RGBA{40, 40, 40, 255}, false)
+	vector.DrawFilledRect(screen, boxX, boxY, boxWidth, boxHeight, color.White, true)
+
+	nameText := g.playerName
+	if len(nameText) == 0 {
+		nameText = "_"
+	} else {
+		if (ebiten.TPS()/2)%2 == 0 {
+			nameText += "_"
+		}
+	}
+
+	nameWidth := font.MeasureString(assets.FontSmall, nameText)
+	nameX := int(boxX) + (int(boxWidth)-nameWidth.Ceil())/2
+	nameY := int(boxY) + 35
+	text.Draw(screen, nameText, assets.FontSmall, nameX, nameY, color.White)
+
+	submitText := "Press ENTER to submit (ESC to skip)"
+	submitWidth := font.MeasureString(assets.FontSmall, submitText)
+	submitX := (config.ScreenWidth - submitWidth.Ceil()) / 2
+	submitColor := color.RGBA{150, 150, 150, 255}
+	text.Draw(screen, submitText, assets.FontSmall, submitX, 450, submitColor)
 }
 
 func (g *Game) AddLaser(l *entities.Laser) {
@@ -632,9 +737,7 @@ func (g *Game) Reset() {
 	g.powerUpSpawnTimer.Reset()
 	g.comboTimer.Reset()
 
-	if g.score >= bestScore {
-		bestScore = g.score
-	}
+	g.saveHighScore()
 
 	g.score = 0
 	g.combo = 0
@@ -698,4 +801,38 @@ func (g *Game) GetSuperPowerActive() bool {
 func (g *Game) ResetCombo() {
 	g.combo = 0
 	g.comboTimer.Reset()
+}
+
+func (g *Game) loadHighScore() {
+	g.highScore = g.storage.LoadHighScore()
+}
+
+func (g *Game) saveHighScore() {
+	if g.score > g.highScore {
+		g.highScore = g.score
+		g.storage.SaveHighScore(g.highScore)
+	}
+}
+
+func (g *Game) loadLeaderboard() {
+	data, err := g.storage.LoadLeaderboard()
+	if err == nil {
+		g.leaderboard.FromJSON(data)
+	}
+}
+
+func (g *Game) saveLeaderboard() {
+	data, err := g.leaderboard.ToJSON()
+	if err == nil {
+		g.storage.SaveLeaderboard(data)
+	}
+}
+
+func (g *Game) addScoreToLeaderboard(name string, score int) {
+	// Add to local leaderboard
+	g.leaderboard.AddScore(name, score)
+	g.saveLeaderboard()
+
+	// Also notify web leaderboard if running in browser
+	g.notifyWebLeaderboard(name, score)
 }

@@ -7,4 +7,5 @@ const (
 	StatePlaying
 	StatePaused
 	StateGameOver
+	StateNameInput
 )
