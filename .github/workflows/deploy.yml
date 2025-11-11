@@ -22,17 +22,20 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.22'
+          cache: false
 
       - name: Build WASM
         run: |
           GOOS=js GOARCH=wasm go build -o web/go-meteor.wasm main.go
+          ls -lh web/go-meteor.wasm
 
       - name: Download WASM exec
         run: |
-          curl -o web/wasm_exec.js https://raw.githubusercontent.com/golang/go/master/misc/wasm/wasm_exec.js
+          curl -o web/wasm_exec.js https://raw.githubusercontent.com/golang/go/go1.22.0/misc/wasm/wasm_exec.js
+          ls -lh web/wasm_exec.js
 
       - name: Generate Firebase Config
         run: |
@@ -48,18 +51,19 @@ jobs:
             measurementId: "${{ secrets.FIREBASE_MEASUREMENT_ID }}"
           };
           EOF
+          ls -lh web/firebase-config.js
 
-      - name: List web directory contents
+      - name: List all web files
         run: |
-          echo "Contents of web directory:"
+          echo "=== All files in web/ ==="
           ls -lah web/
-          echo "Checking if files exist:"
-          test -f web/go-meteor.wasm && echo "✓ go-meteor.wasm exists" || echo "✗ go-meteor.wasm missing"
-          test -f web/wasm_exec.js && echo "✓ wasm_exec.js exists" || echo "✗ wasm_exec.js missing"
-          test -f web/firebase-config.js && echo "✓ firebase-config.js exists" || echo "✗ firebase-config.js missing"
+          echo "=== Checking critical files ==="
+          file web/go-meteor.wasm
+          file web/wasm_exec.js
+          file web/firebase-config.js
 
       - name: Setup Pages
-        uses: actions/configure-pages@v4
+        uses: actions/configure-pages@v5
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
