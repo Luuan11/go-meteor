@@ -67,11 +67,17 @@ function submitName() {
   
   if (nameInputCallback) {
     nameInputCallback(name);
+    nameInputCallback = null;
   }
   closeModal();
 }
 
 function closeModal() {
+  if (nameInputCallback) {
+    nameInputCallback('');
+    nameInputCallback = null;
+  }
+  
   if (nameInputModal) {
     nameInputModal.classList.remove('show');
     setTimeout(() => {
@@ -80,7 +86,6 @@ function closeModal() {
       }
       nameInputModal = null;
       nameInputField = null;
-      nameInputCallback = null;
     }, 300);
   }
 }

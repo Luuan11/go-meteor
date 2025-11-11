@@ -25,15 +25,17 @@ func (g *Game) showNameInputModal() {
 	callback := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		if len(args) > 0 {
 			name := args[0].String()
-			g.playerName = name
-			g.leaderboard.AddScore(name, g.score)
+			if name != "" {
+				g.playerName = name
+				g.leaderboard.AddScore(name, g.score)
 
-			data, err := g.leaderboard.ToJSON()
-			if err == nil {
-				g.storage.SaveLeaderboard(data)
+				data, err := g.leaderboard.ToJSON()
+				if err == nil {
+					g.storage.SaveLeaderboard(data)
+				}
+
+				g.notifyWebLeaderboard(name, g.score)
 			}
-
-			g.notifyWebLeaderboard(name, g.score)
 		}
 		g.state = config.StateGameOver
 		return nil
