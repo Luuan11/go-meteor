@@ -108,7 +108,7 @@ function updateLeaderboardUI(leaderboard) {
   if (!container) return;
   
   if (!leaderboard || leaderboard.length === 0) {
-    container.innerHTML = '<div class="no-scores">No scores yet. Be the first!</div>';
+    container.innerHTML = '<div class="empty-message">No scores yet. Be the first!</div>';
     return;
   }
   

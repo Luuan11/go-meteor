@@ -9,7 +9,7 @@ function createNameInputModal() {
   modal.innerHTML = `
     <div class="modal-content">
       <div class="modal-header">
-        <h2>🏆 TOP 10!</h2>
+        <h2> TOP 10!</h2>
         <p>You made it to the leaderboard!</p>
       </div>
       <div class="modal-body">

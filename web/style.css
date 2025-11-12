@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
 
 body {
     display: flex;
@@ -9,9 +10,21 @@ body {
     font-family: 'Pixelify Sans', Arial, sans-serif;
     background-color: #232424; 
     color: white; 
-    min-height: 100vh; 
+    height: 100vh;
     margin: 0;
-    padding: 20px 0;
+    padding: 20px;
+    box-sizing: border-box;
+    overflow-x: hidden;
+}
+
+.main-container {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    align-items: flex-start;
+    justify-content: center;
+    width: 100%;
+    max-width: 1600px;
 }
 
 .game-container {
@@ -22,19 +35,25 @@ body {
 }
 
 iframe {
-    border: 1px solid #fafafa; 
-    max-width: 100%; 
+    border: 2px solid #8f2fe9;
+    border-radius: 10px;
+    max-width: 100%;
+    height: 600px;
+    box-shadow: 0 4px 15px rgba(143, 47, 233, 0.3);
 }
 
 /* Leaderboard Panel */
 .leaderboard-panel {
     width: 300px;
-    min-height: 600px;
+    height: 600px;
     background: linear-gradient(145deg, #1a1a2e, #16213e);
     border: 2px solid #8f2fe9;
     border-radius: 10px;
     padding: 20px;
     box-shadow: 0 4px 15px rgba(143, 47, 233, 0.3);
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
 }
 
 .leaderboard-title {
@@ -50,6 +69,8 @@ iframe {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    overflow-y: auto;
+    flex: 1;
 }
 
 .leaderboard-entry {
@@ -116,21 +137,40 @@ iframe {
     color: #888;
     font-size: 16px;
     padding: 40px 0;
+    font-family: 'Poppins', sans-serif;
 }
 
 .tutorial {
     max-width: 350px;
-    border: 1px solid #fafafa;
-    padding: 0 25px 25px 25px;
-    margin-top: 20px;
+    min-width: 280px;
+    height: 600px;
+    box-sizing: border-box;
+    border: 2px solid #8f2fe9;
+    border-radius: 10px;
+    padding: 20px 25px;
+    background: linear-gradient(145deg, #1a1a2e, #16213e);
+    box-shadow: 0 4px 15px rgba(143, 47, 233, 0.3);
 }
 
 .tutorial h2 {
     text-align: center;
-    color: #8f2fe9;
+    color: #ffd700;
     font-size: 30px;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    border-bottom: 2px solid #8f2fe9;
+    padding-bottom: 10px;
+}
+
+.tutorial h3 {
+    text-align: center;
+    color: #ffd700;
+    font-size: 24px;
+    margin-top: 20px;
     margin-bottom: 10px;
     text-transform: uppercase;
+    border-bottom: 2px solid #8f2fe9;
+    padding-bottom: 5px;
 }
 
 .tutorial strong {
@@ -149,14 +189,52 @@ iframe {
     border-radius: 10px;
     font-family: Arial, sans-serif;
     text-align: center;
+    font-size: 18px;
+    font-family: 'poppins', Arial, Helvetica, sans-serif;
+}
+
+.credits p {
+    margin: 5px 0;
+}
+
+.credits strong {
+    font-size: 20px;
 }
 
 .credits a {
     color: #a058e4;
     text-decoration: none;
+    font-size: 20px;
+    transition: color 0.3s ease;
+}
+
+.credits a:hover {
+    color: #8f2fe9;
+}
+
+@media (max-width: 1400px) {
+    .main-container {
+        max-width: 1200px;
+    }
+    
+    .tutorial {
+        min-width: 250px;
+        max-width: 300px;
+    }
 }
 
 @media (max-width: 1200px) {
+    body {
+        height: auto;
+        min-height: 100vh;
+        overflow-y: auto;
+    }
+
+    .main-container {
+        flex-direction: column;
+        align-items: center;
+    }
+
     .game-container {
         flex-direction: column;
         align-items: center;
@@ -164,43 +242,105 @@ iframe {
 
     .leaderboard-panel {
         width: 90%;
-        max-width: 500px;
-        min-height: auto;
+        max-width: 800px;
+        height: auto;
+        min-height: 400px;
+    }
+
+    iframe {
+        width: 100%;
+        max-width: 800px;
+        height: 500px;
+    }
+
+    .tutorial {
+        width: 90%;
+        max-width: 800px;
+        height: auto;
+        min-height: 300px;
     }
 }
 
 @media (max-width: 768px) {
     body {
-        padding: 10px 0;
+        padding: 10px;
+        gap: 15px;
     }
 
     iframe {
-        width: 90%; 
-        height: auto;
-        min-width: 300px; 
-        min-height: 300px; 
+        width: 100%; 
+        height: 400px;
+        min-width: 280px;
     }
 
     .leaderboard-panel {
-        width: 90%;
+        width: 100%;
+        padding: 15px;
     }
 
     .tutorial {
-        width: 90%; 
-        margin-top: 15px; 
-        border: none;
+        width: 100%;
+        padding: 15px;
     }
 
     .tutorial h2 {
         font-size: 24px; 
+        margin-bottom: 10px;
+    }
+
+    .tutorial h3 {
+        font-size: 20px;
+        margin-top: 15px;
+    }
+
+    .tutorial strong {
+        font-size: 20px;
     }
 
     .tutorial p {
-        font-size: 18px; 
+        font-size: 16px; 
     }
 
     .credits { 
-        font-size: 14px; 
+        font-size: 14px;
+    }
+
+    .credits a {
+        font-size: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    iframe {
+        height: 350px;
+    }
+
+    .tutorial h2 {
+        font-size: 20px;
+    }
+
+    .tutorial h3 {
+        font-size: 18px;
+    }
+
+    .tutorial strong {
+        font-size: 18px;
+    }
+
+    .tutorial p {
+        font-size: 14px;
+    }
+
+    .leaderboard-title {
+        font-size: 24px;
+    }
+
+    .entry-name {
+        font-size: 14px;
+    }
+
+    .entry-score {
+        font-size: 14px;
     }
 }
 
