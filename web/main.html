@@ -11,8 +11,16 @@
     <script src="wasm_exec.js"></script>
     <script>
     window.updateLeaderboard = function(name, score) {
-        if (window.parent && window.parent.updateLeaderboard) {
-            window.parent.updateLeaderboard(name, score);
+        console.log('[IFRAME] updateLeaderboard called:', name, score);
+        if (window.parent && window.parent !== window) {
+            console.log('[IFRAME] Calling parent.updateLeaderboard');
+            if (window.parent.updateLeaderboard) {
+                window.parent.updateLeaderboard(name, score);
+            } else {
+                console.error('[IFRAME] Parent does not have updateLeaderboard function');
+            }
+        } else {
+            console.error('[IFRAME] No parent window found');
         }
     };
 
