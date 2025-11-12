@@ -37,9 +37,14 @@ func (g *Game) showNameInputModal() {
 				g.notifyWebLeaderboard(name, g.score)
 			}
 		}
+		// Quando o modal fechar, muda para StateGameOver
 		g.state = config.StateGameOver
 		return nil
 	})
 
 	showModal.Invoke(callback)
+}
+
+func (g *Game) hasNameInputModal() bool {
+	return true
 }

@@ -7,4 +7,5 @@ const (
 	StatePlaying
 	StatePaused
 	StateGameOver
+	StateWaitingNameInput // Aguardando input de nome no modal
 )

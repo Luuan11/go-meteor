@@ -47,6 +47,12 @@ function createNameInputModal() {
     }
   });
   
+  nameInputField.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeModal();
+    }
+  });
+  
   document.getElementById('submit-name-btn').addEventListener('click', submitName);
   document.getElementById('cancel-name-btn').addEventListener('click', closeModal);
   
