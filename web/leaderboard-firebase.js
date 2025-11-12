@@ -5,6 +5,9 @@ let cachedLeaderboard = [];
 let lastFetchTime = 0;
 const CACHE_DURATION = 30000;
 let saveTimeout;
+let gameSessionToken = null;
+let lastScoreSaveTime = 0;
+const MIN_SCORE_INTERVAL = 5000;
 
 function initFirebase() {
   try {
@@ -12,6 +15,9 @@ function initFirebase() {
       console.error('Firebase config not loaded! Include firebase-config.js before this script.');
       return;
     }
+    
+    Object.freeze(window.firebaseConfig);
+    
     firebaseApp = firebase.initializeApp(window.firebaseConfig);
     database = firebase.database();
     leaderboardRef = database.ref('leaderboard');
@@ -115,14 +121,21 @@ function updateLeaderboardUI(leaderboard) {
   container.innerHTML = leaderboard.map((entry, index) => {
     const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
     const rank = index + 1;
+    const displayName = truncateName(entry.name, 20);
+    const displayScore = Math.min(entry.score, 999999);
     return `
       <div class="leaderboard-entry ${index < 3 ? 'top-3' : ''}">
         <span class="rank">${medal || rank}</span>
-        <span class="player-name">${escapeHtml(entry.name)}</span>
-        <span class="score">${entry.score.toLocaleString()}</span>
+        <span class="player-name">${escapeHtml(displayName)}</span>
+        <span class="score">${displayScore.toLocaleString()}</span>
       </div>
     `;
   }).join('');
+}
+
+function truncateName(name, maxLength) {
+  if (name.length <= maxLength) return name;
+  return name.substring(0, maxLength - 3) + '...';
 }
 
 function escapeHtml(text) {
@@ -131,10 +144,36 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-window.updateLeaderboard = async function(playerName, score) {
-  await saveScore(playerName, score);
-  const leaderboard = await loadLeaderboard();
-  updateLeaderboardUI(leaderboard);
+window.updateLeaderboard = async function(playerName, score, sessionToken) {
+  console.log('[Firebase] Received score update request');
+  
+  if (!sessionToken || sessionToken !== gameSessionToken) {
+    console.error('[Firebase] Invalid session token - score rejected');
+    return false;
+  }
+  
+  const now = Date.now();
+  if (now - lastScoreSaveTime < MIN_SCORE_INTERVAL) {
+    console.error('[Firebase] Too many score updates - rate limited');
+    return false;
+  }
+  
+  lastScoreSaveTime = now;
+  gameSessionToken = null;
+  
+  const success = await saveScore(playerName, score);
+  if (success) {
+    console.log('[Firebase] Score saved successfully');
+    const leaderboard = await loadLeaderboard();
+    updateLeaderboardUI(leaderboard);
+  }
+  return success;
+};
+
+window.initGameSession = function() {
+  gameSessionToken = Math.random().toString(36).substring(2) + Date.now().toString(36);
+  console.log('[Firebase] Game session initialized');
+  return gameSessionToken;
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
