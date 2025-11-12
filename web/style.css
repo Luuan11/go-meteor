@@ -60,12 +60,6 @@ iframe {
     background: rgba(255, 255, 255, 0.05);
     border-radius: 5px;
     border-left: 3px solid #8f2fe9;
-    transition: all 0.3s ease;
-}
-
-.leaderboard-entry:hover {
-    background: rgba(255, 255, 255, 0.1);
-    transform: translateX(5px);
 }
 
 .leaderboard-entry.rank-1 {
