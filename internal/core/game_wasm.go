@@ -1,4 +1,3 @@
-// go:build js && wasm
 //go:build js && wasm
 // +build js,wasm
 
@@ -19,6 +18,7 @@ func (g *Game) notifyWebLeaderboard(name string, score int) {
 func (g *Game) showNameInputModal() {
 	showModal := js.Global().Get("showNameInputModal")
 	if showModal.IsUndefined() || showModal.IsNull() {
+		g.state = config.StateGameOver
 		return
 	}
 
@@ -37,7 +37,6 @@ func (g *Game) showNameInputModal() {
 				g.notifyWebLeaderboard(name, g.score)
 			}
 		}
-		// Quando o modal fechar, muda para StateGameOver
 		g.state = config.StateGameOver
 		return nil
 	})

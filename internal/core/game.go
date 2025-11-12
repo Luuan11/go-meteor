@@ -118,7 +118,6 @@ func (g *Game) Update() error {
 	case config.StateGameOver:
 		return g.updateGameOver()
 	case config.StateWaitingNameInput:
-		// Não faz nada, aguarda o modal fechar
 		return nil
 	}
 
@@ -268,9 +267,9 @@ func (g *Game) updatePlaying() error {
 
 	playerDied := g.checkCollisions()
 	if playerDied {
-		return nil // Para de processar o jogo se o player morreu
+		return nil
 	}
-	
+
 	g.cleanObjects()
 
 	if g.screenShake > 0 {
@@ -400,19 +399,15 @@ func (g *Game) checkCollisions() bool {
 			isDead := g.player.TakeDamage()
 			if isDead {
 				g.saveHighScore()
-				if g.leaderboard.IsTopScore(g.score) {
+				if g.leaderboard.IsTopScore(g.score) && g.hasNameInputModal() {
 					g.isTopScore = true
-					if g.hasNameInputModal() {
-						g.state = config.StateWaitingNameInput
-						g.showNameInputModal()
-					} else {
-						g.state = config.StateGameOver
-					}
+					g.state = config.StateWaitingNameInput
+					g.showNameInputModal()
 				} else {
-					g.state = config.StateGameOver
 					g.isTopScore = false
+					g.state = config.StateGameOver
 				}
-				return true // Player morreu, retorna true
+				return true
 			}
 			g.screenShake = config.ScreenShakeDuration
 			break
@@ -441,8 +436,8 @@ func (g *Game) checkCollisions() bool {
 			break
 		}
 	}
-	
-	return false // Player não morreu
+
+	return false
 }
 
 func (g *Game) cleanObjects() {
@@ -517,7 +512,6 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	case config.StateGameOver:
 		g.drawGameOver(screen)
 	case config.StateWaitingNameInput:
-		// Desenha o jogo congelado (última frame antes de morrer)
 		g.drawPlaying(screen)
 	}
 }
