@@ -14,7 +14,7 @@
         if (window.parent && window.parent !== window) {
             if (window.parent.updateLeaderboard) {
                 window.parent.updateLeaderboard(name, score);
-                console.log('🔄 Syncing score to Firebase leaderboard...');
+                console.log('[Firebase] Syncing score to global leaderboard...');
             }
         }
     };

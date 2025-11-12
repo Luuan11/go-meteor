@@ -26,6 +26,8 @@ Interactive game project made entirely with GO, where you can control your playe
 - Wave System
 - Responsive Web Tutorial
 - Clean Architecture
+- Global Leaderboard (Firebase Realtime Database)
+- Name Input Modal for Top 10 Scores
 
 ## Installation
 

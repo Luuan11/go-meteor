@@ -28,12 +28,12 @@ func (g *Game) showNameInputModal() {
 			if name != "" {
 				g.playerName = name
 				g.leaderboard.AddScore(name, g.score)
-				js.Global().Get("console").Call("log", "✅ Score saved to leaderboard:", name, "-", g.score, "points")
+				js.Global().Get("console").Call("log", "[Leaderboard] Score saved:", name, "-", g.score, "points")
 
 				data, err := g.leaderboard.ToJSON()
 				if err == nil {
 					g.storage.SaveLeaderboard(data)
-					js.Global().Get("console").Call("log", "💾 Leaderboard saved to local storage")
+					js.Global().Get("console").Call("log", "[Storage] Leaderboard saved to local storage")
 				}
 
 				g.notifyWebLeaderboard(name, g.score)
