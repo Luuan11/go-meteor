@@ -10,6 +10,12 @@
     <script src="name-input-modal.js"></script>
     <script src="wasm_exec.js"></script>
     <script>
+    window.updateLeaderboard = function(name, score) {
+        if (window.parent && window.parent.updateLeaderboard) {
+            window.parent.updateLeaderboard(name, score);
+        }
+    };
+
     if (!WebAssembly.instantiateStreaming) {
         WebAssembly.instantiateStreaming = async (resp, importObject) => {
             const source = await (await resp).arrayBuffer();

@@ -83,7 +83,3 @@ jobs:
 
       - name: List web directory
         run: ls -lah web/
-      - name: Note: deploy disabled in this workflow
-        run: |
-          echo "This workflow performs validation and builds the web assembly but DOES NOT upload or deploy the artifact."
-          echo "Use the main 'Deploy to GitHub Pages' workflow to upload and deploy the _site artifact."
