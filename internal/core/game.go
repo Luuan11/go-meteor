@@ -635,50 +635,6 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 	return config.ScreenWidth, config.ScreenHeight
 }
 
-func (g *Game) drawRainbowText(screen *ebiten.Image, str string, face font.Face, x, y int) {
-	timeOffset := float64(g.superPowerTimer.CurrentTicks()) * 0.05
-
-	for i, char := range str {
-		hue := float64(i)*0.15 + timeOffset
-		r, g, b := hsvToRGB(hue, 1.0, 1.0)
-		charColor := color.RGBA{uint8(r * 255), uint8(g * 255), uint8(b * 255), 255}
-
-		charStr := string(char)
-		text.Draw(screen, charStr, face, x, y, charColor)
-
-		charWidth := font.MeasureString(face, charStr)
-		x += charWidth.Ceil()
-	}
-}
-
-func hsvToRGB(h, s, v float64) (float64, float64, float64) {
-	h = h - float64(int(h))
-	if h < 0 {
-		h += 1
-	}
-
-	i := int(h * 6)
-	f := h*6 - float64(i)
-	p := v * (1 - s)
-	q := v * (1 - f*s)
-	t := v * (1 - (1-f)*s)
-
-	switch i % 6 {
-	case 0:
-		return v, t, p
-	case 1:
-		return q, v, p
-	case 2:
-		return p, v, t
-	case 3:
-		return p, q, v
-	case 4:
-		return t, p, v
-	default:
-		return v, p, q
-	}
-}
-
 func (g *Game) GetSuperPowerActive() bool {
 	return g.superPowerActive
 }
