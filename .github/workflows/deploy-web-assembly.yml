@@ -1,16 +1,14 @@
-name: Deploy Web Assembly
+name: Validate Build
 
 on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
 
 jobs:
   # Job de validação e testes
@@ -52,14 +50,10 @@ jobs:
       - name: Build native version
         run: go build -v -o game .
 
-  # Job de build e deploy
-  deploy:
-    name: Build & Deploy WebAssembly
+  # Job de build WASM (sem deploy)
+  build-wasm:
+    name: Build WebAssembly
     needs: validate
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -76,10 +70,11 @@ jobs:
 
       - name: Build WebAssembly
         run: |
-          GOOS=js GOARCH=wasm go build -v -ldflags="-s -w" -o web/game.wasm .
+          GOOS=js GOARCH=wasm go build -v -ldflags="-s -w" -o web/go-meteor.wasm .
         
       - name: Copy wasm_exec.js
         run: cp $(go env GOROOT)/misc/wasm/wasm_exec.js web/
 
       - name: List web directory
         run: ls -lah web/
+
