@@ -37,22 +37,6 @@ jobs:
           curl -o web/wasm_exec.js https://raw.githubusercontent.com/golang/go/go1.22.0/misc/wasm/wasm_exec.js
           ls -lh web/wasm_exec.js
 
-      - name: Generate Firebase Config
-        run: |
-          cat > web/firebase-config.js << 'EOF'
-          window.firebaseConfig = {
-            apiKey: "${{ secrets.FIREBASE_API_KEY }}",
-            authDomain: "${{ secrets.FIREBASE_PROJECT_ID }}.firebaseapp.com",
-            databaseURL: "https://${{ secrets.FIREBASE_PROJECT_ID }}-default-rtdb.firebaseio.com",
-            projectId: "${{ secrets.FIREBASE_PROJECT_ID }}",
-            storageBucket: "${{ secrets.FIREBASE_PROJECT_ID }}.firebasestorage.app",
-            messagingSenderId: "${{ secrets.FIREBASE_SENDER_ID }}",
-            appId: "${{ secrets.FIREBASE_APP_ID }}",
-            measurementId: "${{ secrets.FIREBASE_MEASUREMENT_ID }}"
-          };
-          EOF
-          ls -lh web/firebase-config.js
-
       - name: List all web files
         run: |
           echo "=== All files in web/ ==="
@@ -60,9 +44,6 @@ jobs:
           echo "=== Checking critical files ==="
           file web/go-meteor.wasm
           file web/wasm_exec.js
-          file web/firebase-config.js
-          echo "=== Content of firebase-config.js ==="
-          head -5 web/firebase-config.js
 
       - name: Create artifact directory
         run: |
