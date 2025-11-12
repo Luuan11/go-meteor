@@ -64,15 +64,27 @@ function createNameInputModal() {
 }
 
 function submitName() {
-  const name = nameInputField.value.trim();
+  let name = nameInputField.value.trim();
+  
   if (name.length < 2) {
     nameInputField.classList.add('error');
     setTimeout(() => nameInputField.classList.remove('error'), 500);
     return;
   }
   
+  if (name.length > 20) {
+    name = name.substring(0, 20);
+  }
+  
+  const validName = name.replace(/[^a-zA-Z0-9\s\-_]/g, '').trim();
+  if (validName.length < 2) {
+    nameInputField.classList.add('error');
+    setTimeout(() => nameInputField.classList.remove('error'), 500);
+    return;
+  }
+  
   if (nameInputCallback) {
-    nameInputCallback(name);
+    nameInputCallback(validName);
     nameInputCallback = null;
   }
   closeModal();

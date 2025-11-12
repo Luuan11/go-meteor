@@ -10,10 +10,17 @@
     <script src="name-input-modal.js"></script>
     <script src="wasm_exec.js"></script>
     <script>
+    let gameSessionToken = null;
+
+    if (window.parent && window.parent.initGameSession) {
+        gameSessionToken = window.parent.initGameSession();
+        console.log('[Game] Session token obtained');
+    }
+
     window.updateLeaderboard = function(name, score) {
         if (window.parent && window.parent !== window) {
             if (window.parent.updateLeaderboard) {
-                window.parent.updateLeaderboard(name, score);
+                window.parent.updateLeaderboard(name, score, gameSessionToken);
                 console.log('[Firebase] Syncing score to global leaderboard...');
             }
         }
