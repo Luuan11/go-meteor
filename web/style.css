@@ -10,11 +10,12 @@ body {
     font-family: 'Pixelify Sans', Arial, sans-serif;
     background-color: #232424; 
     color: white; 
-    height: 100vh;
+    min-height: 100vh;
     margin: 0;
     padding: 20px;
     box-sizing: border-box;
     overflow-x: hidden;
+    overflow-y: auto;
 }
 
 .main-container {
