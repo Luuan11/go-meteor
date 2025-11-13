@@ -72,7 +72,8 @@ async function saveScore(playerName, score) {
     
     if (!response.ok) {
       const error = await response.json();
-      console.error('Error saving score:', error);
+      console.error('Error saving score (status ' + response.status + '):', error);
+      console.error('Request data:', { name: playerName, score, sessionToken: gameSessionToken, timestamp: Date.now() });
       return false;
     }
     
