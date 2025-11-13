@@ -40,7 +40,7 @@ async function loadLeaderboard() {
   }
 }
 
-async function saveScore(playerName, score) {
+async function saveScore(playerName, score, signature, timestamp) {
   if (!playerName || playerName.length < 2 || playerName.length > 20) {
     console.error('Invalid player name');
     return false;
@@ -66,7 +66,8 @@ async function saveScore(playerName, score) {
         name: playerName,
         score: score,
         sessionToken: gameSessionToken,
-        timestamp: Date.now()
+        timestamp: timestamp,
+        signature: signature
       })
     });
     
@@ -126,11 +127,16 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-window.updateLeaderboard = async function(playerName, score) {
+window.updateLeaderboard = async function(playerName, score, signature, timestamp) {
   console.log('[Leaderboard] Score saved to leaderboard:', playerName, '-', score, 'points');
   
   if (!gameSessionToken) {
     console.error('[Leaderboard] Invalid session - score rejected');
+    return false;
+  }
+
+  if (!signature || !timestamp) {
+    console.error('[Security] Missing signature or timestamp');
     return false;
   }
   
@@ -142,7 +148,7 @@ window.updateLeaderboard = async function(playerName, score) {
   
   lastScoreSaveTime = now;
   
-  const success = await saveScore(playerName, score);
+  const success = await saveScore(playerName, score, signature, timestamp);
   if (success) {
     console.log('[Storage] Leaderboard saved to local storage');
     lastFetchTime = 0;

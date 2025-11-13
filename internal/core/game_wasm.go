@@ -4,14 +4,37 @@
 package core
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
 	"go-meteor/internal/config"
 	"syscall/js"
+	"time"
 )
+
+const secretKey = "go-meteor-secret-2025-secure-key-change-in-production"
+
+func generateSignature(name string, score int, sessionToken string, timestamp int64) string {
+	message := fmt.Sprintf("%s|%d|%s|%d", name, score, sessionToken, timestamp)
+	h := hmac.New(sha256.New, []byte(secretKey))
+	h.Write([]byte(message))
+	return hex.EncodeToString(h.Sum(nil))
+}
 
 func (g *Game) notifyWebLeaderboard(name string, score int) {
 	updateFunc := js.Global().Get("updateLeaderboard")
 	if !updateFunc.IsUndefined() && !updateFunc.IsNull() {
-		updateFunc.Invoke(name, score)
+		sessionToken := js.Global().Get("gameSessionToken")
+		if sessionToken.IsUndefined() || sessionToken.IsNull() {
+			js.Global().Get("console").Call("error", "[Security] No session token")
+			return
+		}
+
+		timestamp := time.Now().UnixMilli()
+		signature := generateSignature(name, score, sessionToken.String(), timestamp)
+
+		updateFunc.Invoke(name, score, signature, timestamp)
 	}
 }
 
