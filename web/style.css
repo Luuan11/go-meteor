@@ -69,7 +69,7 @@ iframe {
 .leaderboard-content {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
     overflow-y: hidden;
     flex: 1;
 }
@@ -78,7 +78,7 @@ iframe {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px;
+    padding: 8px 10px;
     background: rgba(255, 255, 255, 0.05);
     border-radius: 5px;
     border-left: 3px solid #8f2fe9;
