@@ -47,7 +47,7 @@ function initializeFirebase() {
   return admin.database();
 }
 
-function isValidSession(sessionToken, timestamp) {
+function isValidSession(sessionToken) {
   if (!sessionToken || typeof sessionToken !== 'string') {
     return false;
   }
@@ -60,11 +60,13 @@ function isValidSession(sessionToken, timestamp) {
   const tokenTimestamp = parseInt(parts[0], 10);
   const currentTime = Date.now();
 
-  if (currentTime - tokenTimestamp > 10 * 60 * 1000) {
+  // Token deve ter no máximo 30 minutos (tempo razoável de uma partida)
+  if (currentTime - tokenTimestamp > 30 * 60 * 1000) {
     return false;
   }
   
-  if (Math.abs(timestamp - tokenTimestamp) > 5000) {
+  // Token não pode ser do futuro (tolerância de 1 minuto para diferenças de clock)
+  if (tokenTimestamp - currentTime > 60 * 1000) {
     return false;
   }
   
@@ -181,7 +183,7 @@ export default async function handler(req, res) {
         }
       }
       
-      if (!isValidSession(sessionToken, timestamp)) {
+      if (!isValidSession(sessionToken)) {
         console.log('Invalid session:', { sessionToken, timestamp });
         return res.status(403).json({ error: 'Invalid session' });
       }
