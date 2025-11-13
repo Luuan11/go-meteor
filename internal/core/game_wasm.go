@@ -26,7 +26,6 @@ func (g *Game) showNameInputModal() {
 		if len(args) > 0 {
 			name := args[0].String()
 			if name != "" {
-				g.playerName = name
 				g.leaderboard.AddScore(name, g.score)
 				js.Global().Get("console").Call("log", "[Leaderboard] Score saved:", name, "-", g.score, "points")
 

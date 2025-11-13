@@ -64,7 +64,6 @@ type Game struct {
 	storage     systems.Storage
 	highScore   int
 
-	playerName string
 	isTopScore bool
 }
 

@@ -46,19 +46,7 @@
         </p>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <script src="firebase-config.js"></script>
-    <script>
-        if (window.firebaseConfig) {
-            Object.freeze(window.firebaseConfig);
-            Object.defineProperty(window, 'firebaseConfig', {
-                writable: false,
-                configurable: false
-            });
-        }
-    </script>
     <script src="name-input-modal.js"></script>
-    <script src="leaderboard-firebase.js"></script>
+    <script src="leaderboard-api.js"></script>
 </body>
 </html>
