@@ -26,13 +26,13 @@ func (g *Game) showNameInputModal() {
 					g.state = config.StateGameOver
 					return nil
 				}
-				
+
 				g.showModalInternal()
 			}
 			return nil
 		})
 		defer promiseCallback.Release()
-		
+
 		promise := isTopScore.Invoke(g.score)
 		promise.Call("then", promiseCallback)
 	} else {
