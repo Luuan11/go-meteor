@@ -172,8 +172,10 @@ window.isTopScore = async function(score) {
     lastFetchTime = 0;
     const leaderboard = await loadLeaderboard();
     
+    console.log('[Leaderboard] Checking score:', score, 'against', leaderboard.length, 'entries');
+    
     if (leaderboard.length < 10) {
-      console.log('[Leaderboard] Top score: less than 10 entries');
+      console.log('[Leaderboard] Top score: less than 10 entries (has', leaderboard.length + ')');
       return true;
     }
     

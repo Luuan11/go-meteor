@@ -25,8 +25,10 @@ func generateSignature(name string, score int, sessionToken string, timestamp in
 func (g *Game) notifyWebLeaderboard(name string, score int) {
 	updateFunc := js.Global().Get("updateLeaderboard")
 	if !updateFunc.IsUndefined() && !updateFunc.IsNull() {
-		sessionToken := js.Global().Get("gameSessionToken")
-		if sessionToken.IsUndefined() || sessionToken.IsNull() {
+		window := js.Global()
+		sessionToken := window.Get("gameSessionToken")
+
+		if sessionToken.Type() != js.TypeString {
 			js.Global().Get("console").Call("error", "[Security] No session token")
 			return
 		}
