@@ -41,8 +41,10 @@ async function loadLeaderboard() {
 }
 
 async function saveScore(playerName, score, signature, timestamp) {
-  if (!playerName || playerName.length < 2 || playerName.length > 20) {
-    console.error('Invalid player name');
+  const trimmedName = playerName ? playerName.trim() : '';
+  
+  if (!trimmedName || trimmedName.length < 2 || trimmedName.length > 15) {
+    console.error('Invalid player name: must be 2-15 characters');
     return false;
   }
   

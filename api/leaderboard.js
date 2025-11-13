@@ -89,11 +89,13 @@ function isValidSession(sessionToken) {
 }
 
 function validateScore(name, score, sessionToken) {
-  if (typeof name !== 'string' || name.length < 2 || name.length > 20) {
-    return { valid: false, error: 'Invalid name length' };
+  const trimmedName = typeof name === 'string' ? name.trim() : '';
+  
+  if (!trimmedName || trimmedName.length < 2 || trimmedName.length > 15) {
+    return { valid: false, error: 'Invalid name length (2-15 characters)' };
   }
   
-  if (!/^[a-zA-Z0-9 ]+$/.test(name)) {
+  if (!/^[a-zA-Z0-9 ]+$/.test(trimmedName)) {
     return { valid: false, error: 'Invalid name characters' };
   }
   

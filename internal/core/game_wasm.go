@@ -28,8 +28,8 @@ func (g *Game) notifyWebLeaderboard(name string, score int) {
 		window := js.Global()
 		sessionToken := window.Get("gameSessionToken")
 
-		if sessionToken.Type() != js.TypeString {
-			js.Global().Get("console").Call("error", "[Security] No session token")
+		if sessionToken.IsUndefined() || sessionToken.IsNull() || sessionToken.Type() != js.TypeString {
+			js.Global().Get("console").Call("error", "[Security] No session token available")
 			return
 		}
 

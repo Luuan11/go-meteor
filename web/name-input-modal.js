@@ -17,12 +17,12 @@ function createNameInputModal() {
         <input 
           type="text" 
           id="player-name-input" 
-          maxlength="20" 
+          maxlength="15" 
           placeholder="Player Name"
           autocomplete="off"
         />
         <div class="char-counter">
-          <span id="char-count">0</span>/20
+          <span id="char-count">0</span>/15
         </div>
       </div>
       <div class="modal-footer">
@@ -66,18 +66,18 @@ function createNameInputModal() {
 function submitName() {
   let name = nameInputField.value.trim();
   
-  if (name.length < 2) {
+  if (!name || name.length < 2) {
     nameInputField.classList.add('error');
     setTimeout(() => nameInputField.classList.remove('error'), 500);
     return;
   }
   
-  if (name.length > 20) {
-    name = name.substring(0, 20);
+  if (name.length > 15) {
+    name = name.substring(0, 15);
   }
   
   const validName = name.replace(/[^a-zA-Z0-9\s\-_]/g, '').trim();
-  if (validName.length < 2) {
+  if (!validName || validName.length < 2) {
     nameInputField.classList.add('error');
     setTimeout(() => nameInputField.classList.remove('error'), 500);
     return;
