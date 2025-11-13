@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Go Meteor API</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .rocket {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        p {
+            font-size: 1.2em;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+
+        .links {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid white;
+            color: white;
+            padding: 12px 30px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+
+        .btn:hover {
+            background: white;
+            color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .api-info {
+            margin-top: 40px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: left;
+        }
+
+        .api-info h2 {
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .endpoint {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .method {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 3px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .get { background: #61affe; }
+        .post { background: #49cc90; }
+
+        code {
+            color: #ffd700;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="rocket">🚀</div>
+        <h1>Go Meteor API</h1>
+        <p>Backend seguro para o leaderboard do jogo Go Meteor</p>
+        
+        <div class="links">
+            <a href="https://luuan11.github.io/go-meteor/" class="btn" target="_blank">🎮 Jogar</a>
+            <a href="https://github.com/Luuan11/go-meteor" class="btn" target="_blank">📦 GitHub</a>
+        </div>
+
+        <div class="api-info">
+            <h2>📡 API Endpoints</h2>
+            
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <code>/api/leaderboard</code>
+                <p style="margin-top: 5px; font-size: 0.9em;">Retorna o top 10 do leaderboard</p>
+            </div>
+
+            <div class="endpoint">
+                <span class="method post">POST</span>
+                <code>/api/leaderboard</code>
+                <p style="margin-top: 5px; font-size: 0.9em;">Salva um novo score (requer session token)</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

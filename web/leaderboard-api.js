@@ -5,9 +5,7 @@ let gameSessionToken = null;
 let lastScoreSaveTime = 0;
 const MIN_SCORE_INTERVAL = 5000;
 
-const API_URL = process.env.VERCEL_URL 
-  ? `https://${process.env.VERCEL_URL}/api/leaderboard`
-  : 'https://go-meteor-api.vercel.app/api/leaderboard';
+const API_URL = 'https://go-meteor.vercel.app/api/leaderboard';
 
 async function loadLeaderboard() {
   const now = Date.now();

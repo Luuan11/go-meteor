@@ -88,6 +88,7 @@ function validateScore(name, score) {
 }
 
 const rateLimitMap = new Map();
+const usedTokens = new Map(); // Blacklist de tokens já usados
 
 function checkRateLimit(ip) {
   const now = Date.now();
@@ -109,6 +110,30 @@ function checkRateLimit(ip) {
   }
   
   return true;
+}
+
+function isTokenUsed(sessionToken) {
+  const now = Date.now();
+  
+  // Verifica se o token já foi usado
+  if (usedTokens.has(sessionToken)) {
+    return true;
+  }
+  
+  // Marca o token como usado
+  usedTokens.set(sessionToken, now);
+  
+  // Limpa tokens antigos (mais de 15 minutos)
+  if (usedTokens.size > 1000) {
+    const cutoff = now - 15 * 60 * 1000;
+    for (const [key, value] of usedTokens.entries()) {
+      if (value < cutoff) {
+        usedTokens.delete(key);
+      }
+    }
+  }
+  
+  return false;
 }
 
 export default async function handler(req, res) {
@@ -159,6 +184,12 @@ export default async function handler(req, res) {
       if (!isValidSession(sessionToken, timestamp)) {
         console.log('Invalid session:', { sessionToken, timestamp });
         return res.status(403).json({ error: 'Invalid session' });
+      }
+      
+      // Verifica se o token já foi usado (proteção contra replay attack)
+      if (isTokenUsed(sessionToken)) {
+        console.log('Token already used:', sessionToken);
+        return res.status(403).json({ error: 'Session token already used' });
       }
       
       const validation = validateScore(name, score);
