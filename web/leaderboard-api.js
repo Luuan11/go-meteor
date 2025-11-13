@@ -161,6 +161,27 @@ window.initGameSession = function() {
   return gameSessionToken;
 };
 
+window.isTopScore = async function(score) {
+  try {
+    lastFetchTime = 0;
+    const leaderboard = await loadLeaderboard();
+    
+    if (leaderboard.length < 10) {
+      console.log('[Leaderboard] Top score: less than 10 entries');
+      return true;
+    }
+    
+    const lowestScore = leaderboard[leaderboard.length - 1].score;
+    const isTop = score > lowestScore;
+    
+    console.log('[Leaderboard] Score check:', score, 'vs lowest:', lowestScore, '- Is top:', isTop);
+    return isTop;
+  } catch (error) {
+    console.error('[Leaderboard] Error checking top score:', error);
+    return true;
+  }
+};
+
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('[Leaderboard] Loading leaderboard...');
   const leaderboard = await loadLeaderboard();

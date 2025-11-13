@@ -70,7 +70,7 @@ iframe {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    overflow-y: auto;
+    overflow-y: hidden;
     flex: 1;
 }
 
