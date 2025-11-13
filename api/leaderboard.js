@@ -73,7 +73,7 @@ function isValidSession(sessionToken) {
   return true;
 }
 
-function validateScore(name, score) {
+function validateScore(name, score, sessionToken) {
   if (typeof name !== 'string' || name.length < 2 || name.length > 20) {
     return { valid: false, error: 'Invalid name length' };
   }
@@ -84,6 +84,21 @@ function validateScore(name, score) {
   
   if (typeof score !== 'number' || score < 0 || score > 999999) {
     return { valid: false, error: 'Invalid score range' };
+  }
+  
+  const tokenTimestamp = parseInt(sessionToken.split('-')[0], 10);
+  const currentTime = Date.now();
+  const gameTimeSeconds = (currentTime - tokenTimestamp) / 1000;
+  
+  if (gameTimeSeconds < 30) {
+    return { valid: false, error: 'Game time too short (minimum 30 seconds)' };
+  }
+  
+  const maxScorePerSecond = 10;
+  const maxPossibleScore = Math.floor(gameTimeSeconds * maxScorePerSecond);
+  
+  if (score > maxPossibleScore) {
+    return { valid: false, error: `Score too high for game time (max ${maxPossibleScore} in ${Math.floor(gameTimeSeconds)}s)` };
   }
   
   return { valid: true };
@@ -194,8 +209,9 @@ export default async function handler(req, res) {
         return res.status(403).json({ error: 'Session token already used' });
       }
       
-      const validation = validateScore(name, score);
+      const validation = validateScore(name, score, sessionToken);
       if (!validation.valid) {
+        console.log('Score validation failed:', validation.error, { name, score, sessionToken });
         return res.status(400).json({ error: validation.error });
       }
       
