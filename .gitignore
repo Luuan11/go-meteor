@@ -43,3 +43,4 @@ web/wasm/
 
 # Firebase credentials
 web/firebase-config.js
+web/firebase-appcheck-config.js
