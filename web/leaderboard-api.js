@@ -236,10 +236,17 @@ window.isTopScore = async function(score) {
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
-  console.log('[Leaderboard] Loading leaderboard...');
+  console.log('[Leaderboard] Initializing...');
+  
+  // Initialize session token immediately
+  window.initGameSession();
+  console.log('[Session] Token initialized on page load');
+  
+  // Load leaderboard
   const leaderboard = await loadLeaderboard();
   updateLeaderboardUI(leaderboard);
   
+  // Auto-refresh every 30 seconds
   setInterval(async () => {
     lastFetchTime = 0;
     const leaderboard = await loadLeaderboard();

@@ -45,14 +45,9 @@ func (g *Game) notifyWebLeaderboard(name string, score int) {
 
 	sessionTokenValue := js.Global().Get("gameSessionToken")
 	if sessionTokenValue.IsUndefined() || sessionTokenValue.IsNull() || sessionTokenValue.String() == "" {
-		js.Global().Get("console").Call("error", "[Security] No session token available - generating new one")
-		initSessionFunc := js.Global().Get("initGameSession")
-		if !initSessionFunc.IsUndefined() && !initSessionFunc.IsNull() {
-			sessionTokenValue = initSessionFunc.Invoke()
-		} else {
-			js.Global().Get("console").Call("error", "[Security] Cannot generate session token")
-			return
-		}
+		js.Global().Get("console").Call("error", "[Security] No session token available - this should not happen!")
+		js.Global().Get("console").Call("error", "[Security] Make sure initGameSession() was called on page load")
+		return
 	}
 
 	sessionToken := sessionTokenValue.String()
@@ -60,9 +55,9 @@ func (g *Game) notifyWebLeaderboard(name string, score int) {
 	signature := generateSignature(name, score, sessionToken, timestamp)
 
 	js.Global().Get("console").Call("log", "[Security] Sending score with HMAC signature")
-	js.Global().Get("console").Call("log", "[Security] Session token:", sessionToken)
+	js.Global().Get("console").Call("log", "[Security] Session token:", sessionToken[:20]+"...")
 	js.Global().Get("console").Call("log", "[Security] Timestamp:", timestamp)
-	js.Global().Get("console").Call("log", "[Security] Signature:", signature)
+	js.Global().Get("console").Call("log", "[Security] Signature:", signature[:16]+"...")
 
 	updateFunc.Invoke(name, score, signature, timestamp)
 }
