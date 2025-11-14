@@ -7,6 +7,9 @@ const MIN_SCORE_INTERVAL = 5000;
 
 const API_URL = 'https://go-meteor.vercel.app/api/leaderboard';
 const RECAPTCHA_SITE_KEY = '6LdWFgwsAAAAAAMzR76ilX1OUF56FtKjU2yOlvcG';
+const FRONTEND_VERSION = '0.2.0';
+
+console.log('[Frontend Version]', FRONTEND_VERSION);
 
 // Inicializar session token IMEDIATAMENTE (antes do WASM carregar)
 (function initSessionImmediately() {

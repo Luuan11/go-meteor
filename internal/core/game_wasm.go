@@ -13,6 +13,8 @@ import (
 	"time"
 )
 
+const GameVersion = "0.2.0"
+
 func getSecretKey() []byte {
 	encrypted := []byte{
 		0x67, 0x6f, 0x2d, 0x6d, 0x65, 0x74, 0x65, 0x6f, 0x72, 0x2d,
@@ -37,6 +39,8 @@ func generateSignature(name string, score int, sessionToken string, timestamp in
 }
 
 func (g *Game) notifyWebLeaderboard(name string, score int) {
+	js.Global().Get("console").Call("log", "[Game Version]", GameVersion)
+
 	updateFunc := js.Global().Get("updateLeaderboard")
 	if updateFunc.IsUndefined() || updateFunc.IsNull() {
 		js.Global().Get("console").Call("error", "[Security] updateLeaderboard function not found")
@@ -77,6 +81,12 @@ func (g *Game) showNameInputModal() {
 	isTopScore := js.Global().Get("isTopScore")
 	if !isTopScore.IsUndefined() && !isTopScore.IsNull() {
 		promiseCallback := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+			defer func() {
+				if r := recover(); r != nil {
+					js.Global().Get("console").Call("error", "[Promise] Panic in callback:", r)
+				}
+			}()
+
 			if len(args) > 0 {
 				isTop := args[0].Bool()
 				if !isTop {
@@ -89,7 +99,6 @@ func (g *Game) showNameInputModal() {
 			}
 			return nil
 		})
-		defer promiseCallback.Release()
 
 		promise := isTopScore.Invoke(g.score)
 		promise.Call("then", promiseCallback)

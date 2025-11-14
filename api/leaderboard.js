@@ -1,6 +1,9 @@
 const admin = require('firebase-admin');
 const crypto = require('crypto');
 
+const API_VERSION = '0.2.0';
+console.log('[API Version]', API_VERSION);
+
 let firebaseApp;
 
 function getSecretKey() {
