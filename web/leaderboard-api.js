@@ -6,6 +6,7 @@ let lastScoreSaveTime = 0;
 const MIN_SCORE_INTERVAL = 5000;
 
 const API_URL = 'https://go-meteor.vercel.app/api/leaderboard';
+const RECAPTCHA_SITE_KEY = '6LeztQosAAAAALWjx-rL6CJG40aQpLR0vRz_G1H2';
 
 async function loadLeaderboard() {
   const now = Date.now();
@@ -40,7 +41,7 @@ async function loadLeaderboard() {
   }
 }
 
-async function saveScore(playerName, score, signature, timestamp) {
+async function saveScore(playerName, score) {
   const trimmedName = playerName ? playerName.trim() : '';
   
   if (!trimmedName || trimmedName.length < 2 || trimmedName.length > 15) {
@@ -58,6 +59,14 @@ async function saveScore(playerName, score, signature, timestamp) {
     return false;
   }
   
+  let recaptchaToken = null;
+  try {
+    recaptchaToken = await grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'submit_score' });
+    console.log('[reCAPTCHA] Token generated');
+  } catch (error) {
+    console.error('[reCAPTCHA] Failed to generate token:', error);
+  }
+  
   try {
     const response = await fetch(API_URL, {
       method: 'POST',
@@ -65,11 +74,11 @@ async function saveScore(playerName, score, signature, timestamp) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        name: playerName,
+        name: trimmedName,
         score: score,
         sessionToken: gameSessionToken,
-        timestamp: timestamp,
-        signature: signature
+        timestamp: Date.now(),
+        recaptchaToken: recaptchaToken
       })
     });
     
@@ -129,16 +138,11 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-window.updateLeaderboard = async function(playerName, score, signature, timestamp) {
+window.updateLeaderboard = async function(playerName, score) {
   console.log('[Leaderboard] Score saved to leaderboard:', playerName, '-', score, 'points');
   
   if (!gameSessionToken) {
     console.error('[Leaderboard] Invalid session - score rejected');
-    return false;
-  }
-
-  if (!signature || !timestamp) {
-    console.error('[Security] Missing signature or timestamp');
     return false;
   }
   
@@ -150,13 +154,14 @@ window.updateLeaderboard = async function(playerName, score, signature, timestam
   
   lastScoreSaveTime = now;
   
-  const success = await saveScore(playerName, score, signature, timestamp);
+  const success = await saveScore(playerName, score);
   if (success) {
     console.log('[Storage] Leaderboard saved to local storage');
     lastFetchTime = 0;
     const leaderboard = await loadLeaderboard();
     updateLeaderboardUI(leaderboard);
     gameSessionToken = null;
+    window.gameSessionToken = null;
   }
   return success;
 };
@@ -165,6 +170,7 @@ window.initGameSession = function() {
   const timestamp = Date.now();
   const random = Math.random().toString(36).substring(2, 15);
   gameSessionToken = `${timestamp}-${random}`;
+  window.gameSessionToken = gameSessionToken;
   console.log('[Session] Game session initialized');
   return gameSessionToken;
 };

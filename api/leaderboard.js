@@ -1,21 +1,6 @@
 const admin = require('firebase-admin');
-const crypto = require('crypto');
 
 let firebaseApp;
-
-const SECRET_KEY = 'go-meteor-secret-2025-secure-key-change-in-production';
-
-function verifySignature(name, score, sessionToken, timestamp, signature) {
-  const message = `${name}|${score}|${sessionToken}|${timestamp}`;
-  const hmac = crypto.createHmac('sha256', SECRET_KEY);
-  hmac.update(message);
-  const expectedSignature = hmac.digest('hex');
-  
-  return crypto.timingSafeEqual(
-    Buffer.from(signature, 'hex'),
-    Buffer.from(expectedSignature, 'hex')
-  );
-}
 
 async function verifyRecaptcha(token) {
   const secretKey = process.env.RECAPTCHA_SECRET_KEY;
@@ -206,23 +191,17 @@ export default async function handler(req, res) {
         return res.status(429).json({ error: 'Too many requests. Please wait.' });
       }
       
-      const { name, score, sessionToken, timestamp, signature, recaptchaToken } = req.body;
+      const { name, score, sessionToken, timestamp, recaptchaToken } = req.body;
       
-      if (!signature) {
-        console.log('Missing signature');
-        return res.status(403).json({ error: 'Missing signature' });
+      if (!recaptchaToken) {
+        console.log('Missing reCAPTCHA token');
+        return res.status(403).json({ error: 'reCAPTCHA verification required' });
       }
       
-      if (!verifySignature(name, score, sessionToken, timestamp, signature)) {
-        console.log('Invalid signature - possible tampering detected');
-        return res.status(403).json({ error: 'Invalid signature' });
-      }
-      
-      if (recaptchaToken) {
-        const isValidRecaptcha = await verifyRecaptcha(recaptchaToken);
-        if (!isValidRecaptcha) {
-          return res.status(403).json({ error: 'reCAPTCHA verification failed' });
-        }
+      const isValidRecaptcha = await verifyRecaptcha(recaptchaToken);
+      if (!isValidRecaptcha) {
+        console.log('reCAPTCHA verification failed');
+        return res.status(403).json({ error: 'reCAPTCHA verification failed' });
       }
       
       if (!isValidSession(sessionToken)) {
