@@ -8,6 +8,15 @@ const MIN_SCORE_INTERVAL = 5000;
 const API_URL = 'https://go-meteor.vercel.app/api/leaderboard';
 const RECAPTCHA_SITE_KEY = '6LdWFgwsAAAAAAMzR76ilX1OUF56FtKjU2yOlvcG';
 
+// Inicializar session token IMEDIATAMENTE (antes do WASM carregar)
+(function initSessionImmediately() {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(2, 15);
+  gameSessionToken = `${timestamp}-${random}`;
+  window.gameSessionToken = gameSessionToken;
+  console.log('[Session] Token initialized immediately:', gameSessionToken.substring(0, 20) + '...');
+})();
+
 async function loadLeaderboard() {
   const now = Date.now();
   
@@ -236,11 +245,7 @@ window.isTopScore = async function(score) {
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
-  console.log('[Leaderboard] Initializing...');
-  
-  // Initialize session token immediately
-  window.initGameSession();
-  console.log('[Session] Token initialized on page load');
+  console.log('[Leaderboard] Loading leaderboard UI...');
   
   // Load leaderboard
   const leaderboard = await loadLeaderboard();
