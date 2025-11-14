@@ -60,11 +60,26 @@ async function saveScore(playerName, score) {
   }
   
   let recaptchaToken = null;
+  // Ensure grecaptcha is loaded and ready before executing
+  if (typeof grecaptcha === 'undefined' || !grecaptcha || !grecaptcha.ready) {
+    console.error('[reCAPTCHA] grecaptcha not loaded or ready');
+    // Abort save - server now requires reCAPTCHA
+    return false;
+  }
+
   try {
-    recaptchaToken = await grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'submit_score' });
+    recaptchaToken = await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error('reCAPTCHA timeout')), 5000);
+      grecaptcha.ready(() => {
+        grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'submit_score' })
+          .then(token => { clearTimeout(timeout); resolve(token); })
+          .catch(err => { clearTimeout(timeout); reject(err); });
+      });
+    });
     console.log('[reCAPTCHA] Token generated');
   } catch (error) {
     console.error('[reCAPTCHA] Failed to generate token:', error);
+    return false;
   }
   
   try {
