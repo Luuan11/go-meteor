@@ -4,15 +4,63 @@
 package core
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
 	"go-meteor/internal/config"
 	"syscall/js"
+	"time"
 )
+
+func getSecretKey() []byte {
+	encrypted := []byte{
+		0x67, 0x6f, 0x2d, 0x6d, 0x65, 0x74, 0x65, 0x6f, 0x72, 0x2d,
+		0x73, 0x65, 0x63, 0x72, 0x65, 0x74, 0x2d, 0x32, 0x30, 0x32,
+		0x35, 0x2d, 0x73, 0x65, 0x63, 0x75, 0x72, 0x65,
+	}
+	key := make([]byte, len(encrypted))
+	for i, b := range encrypted {
+		key[i] = b ^ 0xAA
+	}
+	return key
+}
+
+func generateSignature(name string, score int, sessionToken string, timestamp int64) string {
+	message := fmt.Sprintf("%s|%d|%s|%d", name, score, sessionToken, timestamp)
+	h := hmac.New(sha256.New, getSecretKey())
+	h.Write([]byte(message))
+	signature := hex.EncodeToString(h.Sum(nil))
+
+	js.Global().Get("console").Call("log", "[Security] Signature generated for:", name, score)
+	return signature
+}
 
 func (g *Game) notifyWebLeaderboard(name string, score int) {
 	updateFunc := js.Global().Get("updateLeaderboard")
-	if !updateFunc.IsUndefined() && !updateFunc.IsNull() {
-		updateFunc.Invoke(name, score)
+	if updateFunc.IsUndefined() || updateFunc.IsNull() {
+		js.Global().Get("console").Call("error", "[Security] updateLeaderboard function not found")
+		return
 	}
+
+	sessionTokenValue := js.Global().Get("gameSessionToken")
+	if sessionTokenValue.IsUndefined() || sessionTokenValue.IsNull() {
+		js.Global().Get("console").Call("error", "[Security] No session token available")
+		return
+	}
+
+	sessionToken := sessionTokenValue.String()
+	timestamp := time.Now().UnixMilli()
+	signature := generateSignature(name, score, sessionToken, timestamp)
+
+	js.Global().Get("console").Call("log", "[Security] Sending score with HMAC signature")
+	js.Global().Get("console").Call("log", "[Security] Data:", map[string]interface{}{
+		"name":      name,
+		"score":     score,
+		"timestamp": timestamp,
+	})
+
+	updateFunc.Invoke(name, score, signature, timestamp)
 }
 
 func (g *Game) showNameInputModal() {

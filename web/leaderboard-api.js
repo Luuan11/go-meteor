@@ -6,7 +6,7 @@ let lastScoreSaveTime = 0;
 const MIN_SCORE_INTERVAL = 5000;
 
 const API_URL = 'https://go-meteor.vercel.app/api/leaderboard';
-const RECAPTCHA_SITE_KEY = '6LeztQosAAAAALWjx-rL6CJG40aQpLR0vRz_G1H2';
+const RECAPTCHA_SITE_KEY = '6LdWFgwsAAAAAAMzR76ilX1OUF56FtKjU2yOlvcG';
 
 async function loadLeaderboard() {
   const now = Date.now();
@@ -41,75 +41,90 @@ async function loadLeaderboard() {
   }
 }
 
-async function saveScore(playerName, score) {
+async function saveScore(playerName, score, signature, timestamp) {
+  console.log('[API] saveScore called with:', { playerName, score, hasSignature: !!signature, timestamp });
+  
   const trimmedName = playerName ? playerName.trim() : '';
   
   if (!trimmedName || trimmedName.length < 2 || trimmedName.length > 15) {
-    console.error('Invalid player name: must be 2-15 characters');
+    console.error('[Validation] Invalid player name: must be 2-15 characters');
     return false;
   }
   
   if (score < 0 || score > 999999) {
-    console.error('Invalid score');
+    console.error('[Validation] Invalid score range:', score);
     return false;
   }
   
   if (!gameSessionToken) {
-    console.error('No valid session token');
+    console.error('[Session] No valid session token');
+    return false;
+  }
+
+  if (!signature) {
+    console.error('[Security] Missing HMAC signature');
+    return false;
+  }
+
+  if (!timestamp) {
+    console.error('[Security] Missing timestamp');
     return false;
   }
   
   let recaptchaToken = null;
-  // Ensure grecaptcha is loaded and ready before executing
-  if (typeof grecaptcha === 'undefined' || !grecaptcha || !grecaptcha.ready) {
-    console.error('[reCAPTCHA] grecaptcha not loaded or ready');
-    // Abort save - server now requires reCAPTCHA
-    return false;
-  }
-
-  try {
-    recaptchaToken = await new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => reject(new Error('reCAPTCHA timeout')), 5000);
-      grecaptcha.ready(() => {
-        grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'submit_score' })
-          .then(token => { clearTimeout(timeout); resolve(token); })
-          .catch(err => { clearTimeout(timeout); reject(err); });
+  if (typeof grecaptcha !== 'undefined' && grecaptcha && grecaptcha.ready) {
+    try {
+      recaptchaToken = await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('reCAPTCHA timeout')), 5000);
+        grecaptcha.ready(() => {
+          grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'submit_score' })
+            .then(token => { clearTimeout(timeout); resolve(token); })
+            .catch(err => { clearTimeout(timeout); reject(err); });
+        });
       });
-    });
-    console.log('[reCAPTCHA] Token generated');
-  } catch (error) {
-    console.error('[reCAPTCHA] Failed to generate token:', error);
-    return false;
+      console.log('[reCAPTCHA] Token generated successfully');
+    } catch (error) {
+      console.error('[reCAPTCHA] Failed to generate token:', error);
+      console.warn('[reCAPTCHA] Continuing without verification');
+    }
+  } else {
+    console.warn('[reCAPTCHA] Not loaded, continuing without verification');
   }
   
   try {
+    console.log('[API] Sending POST request to:', API_URL);
+    const requestBody = {
+      name: trimmedName,
+      score: score,
+      sessionToken: gameSessionToken,
+      timestamp: timestamp,
+      signature: signature,
+      recaptchaToken: recaptchaToken
+    };
+    console.log('[API] Request body:', { ...requestBody, signature: signature.substring(0, 16) + '...', recaptchaToken: recaptchaToken ? 'present' : 'null' });
+    
     const response = await fetch(API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        name: trimmedName,
-        score: score,
-        sessionToken: gameSessionToken,
-        timestamp: Date.now(),
-        recaptchaToken: recaptchaToken
-      })
+      body: JSON.stringify(requestBody)
     });
     
     if (!response.ok) {
       const error = await response.json();
-      console.error('Error saving score (status ' + response.status + '):', error);
-      console.error('Request data:', { name: playerName, score, sessionToken: gameSessionToken, timestamp: Date.now() });
+      console.error('[API] Error response (status ' + response.status + '):', error);
+      console.error('[API] Request details:', { name: trimmedName, score, sessionToken: gameSessionToken.substring(0, 16) + '...', timestamp });
       return false;
     }
     
     const result = await response.json();
-    console.log('[Leaderboard] Score saved:', result);
+    console.log('[API] Score saved successfully:', result);
     return true;
     
   } catch (error) {
-    console.error('Error saving score:', error);
+    console.error('[API] Network error:', error);
+    console.error('[API] Error details:', error.message, error.stack);
     return false;
   }
 }
@@ -153,30 +168,37 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-window.updateLeaderboard = async function(playerName, score) {
-  console.log('[Leaderboard] Score saved to leaderboard:', playerName, '-', score, 'points');
+window.updateLeaderboard = async function(playerName, score, signature, timestamp) {
+  console.log('[Leaderboard] updateLeaderboard called:', { playerName, score, hasSignature: !!signature, timestamp });
   
   if (!gameSessionToken) {
-    console.error('[Leaderboard] Invalid session - score rejected');
+    console.error('[Session] Invalid session - score rejected');
+    return false;
+  }
+
+  if (!signature || !timestamp) {
+    console.error('[Security] Missing signature or timestamp from WASM');
     return false;
   }
   
   const now = Date.now();
   if (now - lastScoreSaveTime < MIN_SCORE_INTERVAL) {
-    console.error('[Leaderboard] Too many score updates - rate limited');
+    console.error('[RateLimit] Too many score updates - rate limited');
     return false;
   }
   
   lastScoreSaveTime = now;
   
-  const success = await saveScore(playerName, score);
+  const success = await saveScore(playerName, score, signature, timestamp);
   if (success) {
-    console.log('[Storage] Leaderboard saved to local storage');
+    console.log('[Leaderboard] Score successfully saved to global leaderboard');
     lastFetchTime = 0;
     const leaderboard = await loadLeaderboard();
     updateLeaderboardUI(leaderboard);
     gameSessionToken = null;
     window.gameSessionToken = null;
+  } else {
+    console.error('[Leaderboard] Failed to save score');
   }
   return success;
 };
