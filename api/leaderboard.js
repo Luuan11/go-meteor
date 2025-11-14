@@ -2,7 +2,6 @@ const admin = require('firebase-admin');
 const crypto = require('crypto');
 
 const API_VERSION = '0.2.0';
-console.log('[API Version]', API_VERSION);
 
 let firebaseApp;
 
@@ -26,20 +25,10 @@ function verifySignature(name, score, sessionToken, timestamp, signature) {
     hmac.update(message);
     const expectedSignature = hmac.digest('hex');
     
-    const isValid = crypto.timingSafeEqual(
+    return crypto.timingSafeEqual(
       Buffer.from(signature, 'hex'),
       Buffer.from(expectedSignature, 'hex')
     );
-    
-    if (isValid) {
-      console.log('[Security] HMAC signature verified successfully');
-    } else {
-      console.log('[Security] HMAC signature verification failed');
-      console.log('[Security] Expected:', expectedSignature.substring(0, 16) + '...');
-      console.log('[Security] Received:', signature.substring(0, 16) + '...');
-    }
-    
-    return isValid;
   } catch (error) {
     console.error('[Security] Signature verification error:', error);
     return false;
@@ -237,48 +226,35 @@ export default async function handler(req, res) {
       
       const { name, score, sessionToken, timestamp, signature, recaptchaToken } = req.body;
       
-      console.log('[API] POST request received from IP:', clientIp);
-      console.log('[API] Request data:', { name, score, hasSignature: !!signature, timestamp, hasRecaptcha: !!recaptchaToken });
-      
       if (!signature) {
-        console.log('[Security] Missing HMAC signature');
         return res.status(403).json({ error: 'Missing signature' });
       }
       
       if (!verifySignature(name, score, sessionToken, timestamp, signature)) {
-        console.log('[Security] Invalid HMAC signature - possible tampering detected');
         return res.status(403).json({ error: 'Invalid signature' });
       }
       
       if (recaptchaToken) {
         const isValidRecaptcha = await verifyRecaptcha(recaptchaToken);
         if (!isValidRecaptcha) {
-          console.log('[reCAPTCHA] Verification failed');
           return res.status(403).json({ error: 'reCAPTCHA verification failed' });
         }
-        console.log('[reCAPTCHA] Verified successfully');
       } else {
         console.warn('[reCAPTCHA] No token provided - proceeding without verification');
       }
       
       if (!isValidSession(sessionToken)) {
-        console.log('[Session] Invalid session:', { sessionToken: sessionToken.substring(0, 16) + '...', timestamp });
         return res.status(403).json({ error: 'Invalid session' });
       }
-      console.log('[Session] Session token validated');
       
       if (isTokenUsed(sessionToken)) {
-        console.log('[Session] Token already used:', sessionToken.substring(0, 16) + '...');
         return res.status(403).json({ error: 'Session token already used' });
       }
-      console.log('[Session] Token marked as used');
       
       const validation = validateScore(name, score, sessionToken);
       if (!validation.valid) {
-        console.log('[Validation] Score validation failed:', validation.error, { name, score });
         return res.status(400).json({ error: validation.error });
       }
-      console.log('[Validation] Score validated successfully');
       
       const db = initializeFirebase();
       const newScoreRef = db.ref('leaderboard').push();
@@ -287,8 +263,6 @@ export default async function handler(req, res) {
         score: score,
         timestamp: admin.database.ServerValue.TIMESTAMP
       });
-      
-      console.log('[Database] Score saved successfully:', { name: name.trim(), score, ip: clientIp });
       
       return res.status(200).json({ 
         success: true,

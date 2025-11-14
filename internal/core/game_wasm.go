@@ -32,10 +32,7 @@ func generateSignature(name string, score int, sessionToken string, timestamp in
 	message := fmt.Sprintf("%s|%d|%s|%d", name, score, sessionToken, timestamp)
 	h := hmac.New(sha256.New, getSecretKey())
 	h.Write([]byte(message))
-	signature := hex.EncodeToString(h.Sum(nil))
-
-	js.Global().Get("console").Call("log", "[Security] Signature generated for:", name, score)
-	return signature
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 func (g *Game) notifyWebLeaderboard(name string, score int) {
@@ -48,20 +45,8 @@ func (g *Game) notifyWebLeaderboard(name string, score int) {
 	}
 
 	sessionTokenValue := js.Global().Get("gameSessionToken")
-
-	// Debug extensivo
-	js.Global().Get("console").Call("log", "[Debug] Checking gameSessionToken...")
-	js.Global().Get("console").Call("log", "[Debug] Is undefined?", sessionTokenValue.IsUndefined())
-	js.Global().Get("console").Call("log", "[Debug] Is null?", sessionTokenValue.IsNull())
-	js.Global().Get("console").Call("log", "[Debug] Type:", sessionTokenValue.Type().String())
-	if !sessionTokenValue.IsUndefined() && !sessionTokenValue.IsNull() {
-		js.Global().Get("console").Call("log", "[Debug] Value:", sessionTokenValue.String())
-	}
-
 	if sessionTokenValue.IsUndefined() || sessionTokenValue.IsNull() || sessionTokenValue.String() == "" {
-		js.Global().Get("console").Call("error", "[Security] No session token available - this should not happen!")
-		js.Global().Get("console").Call("error", "[Security] Make sure initGameSession() was called on page load")
-		js.Global().Get("console").Call("error", "[Security] Try hard refresh (Ctrl+Shift+R)")
+		js.Global().Get("console").Call("error", "[Security] No session token available")
 		return
 	}
 
@@ -70,10 +55,6 @@ func (g *Game) notifyWebLeaderboard(name string, score int) {
 	signature := generateSignature(name, score, sessionToken, timestamp)
 
 	js.Global().Get("console").Call("log", "[Security] Sending score with HMAC signature")
-	js.Global().Get("console").Call("log", "[Security] Session token:", sessionToken[:20]+"...")
-	js.Global().Get("console").Call("log", "[Security] Timestamp:", timestamp)
-	js.Global().Get("console").Call("log", "[Security] Signature:", signature[:16]+"...")
-
 	updateFunc.Invoke(name, score, signature, timestamp)
 }
 
@@ -118,34 +99,23 @@ func (g *Game) showModalInternal() {
 	callback := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		defer func() {
 			if r := recover(); r != nil {
-				js.Global().Get("console").Call("error", "[Modal] Panic in callback:", r)
+				js.Global().Get("console").Call("error", "[Modal] Panic:", r)
 				g.state = config.StateGameOver
 			}
 		}()
 
-		if len(args) > 0 {
+		if len(args) > 0 && args[0].String() != "" {
 			name := args[0].String()
-			js.Global().Get("console").Call("log", "[Modal] Received name:", name)
+			g.leaderboard.AddScore(name, g.score)
 
-			if name != "" {
-				g.leaderboard.AddScore(name, g.score)
-				js.Global().Get("console").Call("log", "[Leaderboard] Score saved locally:", name, "-", g.score, "points")
-
-				data, err := g.leaderboard.ToJSON()
-				if err == nil {
-					g.storage.SaveLeaderboard(data)
-					js.Global().Get("console").Call("log", "[Storage] Leaderboard saved to local storage")
-				} else {
-					js.Global().Get("console").Call("error", "[Storage] Failed to save leaderboard:", err.Error())
-				}
-
-				g.notifyWebLeaderboard(name, g.score)
-			} else {
-				js.Global().Get("console").Call("warn", "[Modal] Empty name received, skipping score save")
+			data, err := g.leaderboard.ToJSON()
+			if err == nil {
+				g.storage.SaveLeaderboard(data)
 			}
-		} else {
-			js.Global().Get("console").Call("warn", "[Modal] No arguments received in callback")
+
+			g.notifyWebLeaderboard(name, g.score)
 		}
+
 		g.state = config.StateGameOver
 		return nil
 	})

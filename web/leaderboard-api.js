@@ -9,15 +9,12 @@ const API_URL = 'https://go-meteor.vercel.app/api/leaderboard';
 const RECAPTCHA_SITE_KEY = '6LdWFgwsAAAAAAMzR76ilX1OUF56FtKjU2yOlvcG';
 const FRONTEND_VERSION = '0.2.0';
 
-console.log('[Frontend Version]', FRONTEND_VERSION);
-
-// Inicializar session token IMEDIATAMENTE (antes do WASM carregar)
+// Initialize session token immediately (before WASM loads)
 (function initSessionImmediately() {
   const timestamp = Date.now();
   const random = Math.random().toString(36).substring(2, 15);
   gameSessionToken = `${timestamp}-${random}`;
   window.gameSessionToken = gameSessionToken;
-  console.log('[Session] Token initialized immediately:', gameSessionToken.substring(0, 20) + '...');
 })();
 
 async function loadLeaderboard() {
@@ -54,8 +51,6 @@ async function loadLeaderboard() {
 }
 
 async function saveScore(playerName, score, signature, timestamp) {
-  console.log('[API] saveScore called with:', { playerName, score, hasSignature: !!signature, timestamp });
-  
   const trimmedName = playerName ? playerName.trim() : '';
   
   if (!trimmedName || trimmedName.length < 2 || trimmedName.length > 15) {
@@ -73,13 +68,8 @@ async function saveScore(playerName, score, signature, timestamp) {
     return false;
   }
 
-  if (!signature) {
-    console.error('[Security] Missing HMAC signature');
-    return false;
-  }
-
-  if (!timestamp) {
-    console.error('[Security] Missing timestamp');
+  if (!signature || !timestamp) {
+    console.error('[Security] Missing signature or timestamp');
     return false;
   }
   
@@ -94,49 +84,36 @@ async function saveScore(playerName, score, signature, timestamp) {
             .catch(err => { clearTimeout(timeout); reject(err); });
         });
       });
-      console.log('[reCAPTCHA] Token generated successfully');
     } catch (error) {
-      console.error('[reCAPTCHA] Failed to generate token:', error);
-      console.warn('[reCAPTCHA] Continuing without verification');
+      console.warn('[reCAPTCHA] Verification skipped:', error.message);
     }
-  } else {
-    console.warn('[reCAPTCHA] Not loaded, continuing without verification');
   }
   
   try {
-    console.log('[API] Sending POST request to:', API_URL);
-    const requestBody = {
-      name: trimmedName,
-      score: score,
-      sessionToken: gameSessionToken,
-      timestamp: timestamp,
-      signature: signature,
-      recaptchaToken: recaptchaToken
-    };
-    console.log('[API] Request body:', { ...requestBody, signature: signature.substring(0, 16) + '...', recaptchaToken: recaptchaToken ? 'present' : 'null' });
-    
     const response = await fetch(API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(requestBody)
+      body: JSON.stringify({
+        name: trimmedName,
+        score: score,
+        sessionToken: gameSessionToken,
+        timestamp: timestamp,
+        signature: signature,
+        recaptchaToken: recaptchaToken
+      })
     });
     
     if (!response.ok) {
       const error = await response.json();
-      console.error('[API] Error response (status ' + response.status + '):', error);
-      console.error('[API] Request details:', { name: trimmedName, score, sessionToken: gameSessionToken.substring(0, 16) + '...', timestamp });
+      console.error('[API] Failed to save score:', error);
       return false;
     }
     
-    const result = await response.json();
-    console.log('[API] Score saved successfully:', result);
     return true;
-    
   } catch (error) {
-    console.error('[API] Network error:', error);
-    console.error('[API] Error details:', error.message, error.stack);
+    console.error('[API] Network error:', error.message);
     return false;
   }
 }
@@ -181,21 +158,19 @@ function escapeHtml(text) {
 }
 
 window.updateLeaderboard = async function(playerName, score, signature, timestamp) {
-  console.log('[Leaderboard] updateLeaderboard called:', { playerName, score, hasSignature: !!signature, timestamp });
-  
   if (!gameSessionToken) {
-    console.error('[Session] Invalid session - score rejected');
+    console.error('[Session] Invalid session');
     return false;
   }
 
   if (!signature || !timestamp) {
-    console.error('[Security] Missing signature or timestamp from WASM');
+    console.error('[Security] Missing signature or timestamp');
     return false;
   }
   
   const now = Date.now();
   if (now - lastScoreSaveTime < MIN_SCORE_INTERVAL) {
-    console.error('[RateLimit] Too many score updates - rate limited');
+    console.error('[RateLimit] Please wait before submitting again');
     return false;
   }
   
@@ -203,14 +178,11 @@ window.updateLeaderboard = async function(playerName, score, signature, timestam
   
   const success = await saveScore(playerName, score, signature, timestamp);
   if (success) {
-    console.log('[Leaderboard] Score successfully saved to global leaderboard');
     lastFetchTime = 0;
     const leaderboard = await loadLeaderboard();
     updateLeaderboardUI(leaderboard);
     gameSessionToken = null;
     window.gameSessionToken = null;
-  } else {
-    console.error('[Leaderboard] Failed to save score');
   }
   return success;
 };
@@ -220,7 +192,6 @@ window.initGameSession = function() {
   const random = Math.random().toString(36).substring(2, 15);
   gameSessionToken = `${timestamp}-${random}`;
   window.gameSessionToken = gameSessionToken;
-  console.log('[Session] Game session initialized');
   return gameSessionToken;
 };
 
@@ -229,28 +200,19 @@ window.isTopScore = async function(score) {
     lastFetchTime = 0;
     const leaderboard = await loadLeaderboard();
     
-    console.log('[Leaderboard] Checking score:', score, 'against', leaderboard.length, 'entries');
-    
     if (leaderboard.length < 10) {
-      console.log('[Leaderboard] Top score: less than 10 entries (has', leaderboard.length + ')');
       return true;
     }
     
     const lowestScore = leaderboard[leaderboard.length - 1].score;
-    const isTop = score > lowestScore;
-    
-    console.log('[Leaderboard] Score check:', score, 'vs lowest:', lowestScore, '- Is top:', isTop);
-    return isTop;
+    return score > lowestScore;
   } catch (error) {
-    console.error('[Leaderboard] Error checking top score:', error);
+    console.error('[Leaderboard] Error checking score:', error);
     return true;
   }
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
-  console.log('[Leaderboard] Loading leaderboard UI...');
-  
-  // Load leaderboard
   const leaderboard = await loadLeaderboard();
   updateLeaderboardUI(leaderboard);
   
