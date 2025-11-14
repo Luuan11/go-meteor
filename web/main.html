@@ -5,27 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lets play</title>
     <link rel="stylesheet" href="style.css">
+    <script src="leaderboard-api.js"></script>
 </head>
 <body>
     <script src="name-input-modal.js"></script>
     <script src="wasm_exec.js"></script>
     <script>
-    let gameSessionToken = null;
-
-    if (window.parent && window.parent.initGameSession) {
-        gameSessionToken = window.parent.initGameSession();
-        console.log('[Game] Session token obtained');
-    }
-
-    window.updateLeaderboard = function(name, score) {
-        if (window.parent && window.parent !== window) {
-            if (window.parent.updateLeaderboard) {
-                window.parent.updateLeaderboard(name, score, gameSessionToken);
-                console.log('[Firebase] Syncing score to global leaderboard...');
-            }
-        }
-    };
-
     if (!WebAssembly.instantiateStreaming) {
         WebAssembly.instantiateStreaming = async (resp, importObject) => {
             const source = await (await resp).arrayBuffer();
