@@ -44,7 +44,7 @@ func (g *Game) notifyWebLeaderboard(name string, score int) {
 	}
 
 	sessionTokenValue := js.Global().Get("gameSessionToken")
-	
+
 	// Debug extensivo
 	js.Global().Get("console").Call("log", "[Debug] Checking gameSessionToken...")
 	js.Global().Get("console").Call("log", "[Debug] Is undefined?", sessionTokenValue.IsUndefined())
@@ -53,7 +53,7 @@ func (g *Game) notifyWebLeaderboard(name string, score int) {
 	if !sessionTokenValue.IsUndefined() && !sessionTokenValue.IsNull() {
 		js.Global().Get("console").Call("log", "[Debug] Value:", sessionTokenValue.String())
 	}
-	
+
 	if sessionTokenValue.IsUndefined() || sessionTokenValue.IsNull() || sessionTokenValue.String() == "" {
 		js.Global().Get("console").Call("error", "[Security] No session token available - this should not happen!")
 		js.Global().Get("console").Call("error", "[Security] Make sure initGameSession() was called on page load")
