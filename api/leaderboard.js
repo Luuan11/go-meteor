@@ -226,6 +226,17 @@ export default async function handler(req, res) {
       
       const { name, score, sessionToken, timestamp, signature, recaptchaToken } = req.body;
       
+      if (!timestamp || typeof timestamp !== 'number') {
+        return res.status(400).json({ error: 'Invalid timestamp' });
+      }
+      
+      const currentTime = Date.now();
+      const timeDiff = Math.abs(currentTime - timestamp);
+      
+      if (timeDiff > 60 * 1000) {
+        return res.status(403).json({ error: 'Timestamp too old or invalid' });
+      }
+      
       if (!signature) {
         return res.status(403).json({ error: 'Missing signature' });
       }
@@ -263,6 +274,32 @@ export default async function handler(req, res) {
         score: score,
         timestamp: admin.database.ServerValue.TIMESTAMP
       });
+      
+      try {
+        const allScoresSnapshot = await db.ref('leaderboard').orderByChild('score').once('value');
+        const allScores = [];
+        
+        allScoresSnapshot.forEach((child) => {
+          allScores.push({
+            key: child.key,
+            score: child.val().score
+          });
+        });
+        
+        allScores.sort((a, b) => b.score - a.score);
+        
+        if (allScores.length > 50) {
+          const toDelete = allScores.slice(50);
+          
+          for (const entry of toDelete) {
+            await db.ref('leaderboard').child(entry.key).remove();
+          }
+          
+          console.log(`[Cleanup] Removed ${toDelete.length} entries, keeping TOP 50`);
+        }
+      } catch (cleanupError) {
+        console.error('[Cleanup] Error cleaning leaderboard:', cleanupError);
+      }
       
       return res.status(200).json({ 
         success: true,
