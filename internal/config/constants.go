@@ -21,7 +21,7 @@ const (
 	PowerUpSpeed     = 6.0
 	PowerUpSpawnTime = 20 * time.Second
 	SuperPowerTime   = 10 * time.Second
-	ShieldTime       = 5 * time.Second
+	ShieldTime       = 10 * time.Second
 
 	StarSpawnTime   = (1 * time.Second) / 2
 	PlanetSpawnTime = 5 * time.Second
