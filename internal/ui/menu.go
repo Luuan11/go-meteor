@@ -24,14 +24,24 @@ func NewMenu() *Menu {
 }
 
 func (m *Menu) Draw(screen *ebiten.Image) {
-
-	text.Draw(screen, "Space GO", assets.ScoreFont, 270, 300, color.White)
+	titleText := "Space GO"
+	titleBounds := text.BoundString(assets.ScoreFont, titleText)
+	titleX := (config.ScreenWidth - titleBounds.Dx()) / 2
+	text.Draw(screen, titleText, assets.ScoreFont, titleX, 350, color.White)
 
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(315, 150)
 	screen.DrawImage(assets.GopherPlayer, op)
 
-	text.Draw(screen, "Press ENTER to start", assets.FontUi, 100, 400, color.White)
+	instructionText := "Press ENTER to start"
+	instructionBounds := text.BoundString(assets.FontUi, instructionText)
+	instructionX := (config.ScreenWidth - instructionBounds.Dx()) / 2
+	text.Draw(screen, instructionText, assets.FontUi, instructionX, 450, color.White)
+
+	creditText := "Luuan11"
+	creditBounds := text.BoundString(assets.FontSmall, creditText)
+	creditX := (config.ScreenWidth - creditBounds.Dx()) / 2
+	text.Draw(screen, creditText, assets.FontSmall, creditX, 580, color.RGBA{150, 100, 255, 255})
 }
 
 func (m *Menu) Update() {
