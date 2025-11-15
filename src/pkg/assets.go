@@ -23,15 +23,16 @@ var assets embed.FS
 var PlayerSprite = mustLoadImage("profile/player.png")
 var LaserSprite = mustLoadImage("profile/laser.png")
 var GopherPlayer = mustLoadImage("profile/go_player.png")
+var PauseIcon = mustLoadImage("profile/pause_icon.png")
 
 var MeteorSprites = mustLoadImages("meteors/*.png")
 var StarsSprites = mustLoadImages("stars/*.png")
 var PlanetsSprites = mustLoadImages("planets/*.png")
 
-var ScoreFont = mustLoadFont("font/font.ttf")
-var FontUi = mustLoadFont("font/fontui.ttf")
-var FontBtn = mustLoadFont("font/fontbtn.ttf")
-var FontSmall = mustLoadFontWithSize("font/fontui.ttf", 28) // Fonte menor para Wave/Combo
+var ScoreFont = mustLoadFont("font/font.ttf", 72)
+var FontUi = mustLoadFont("font/fontui.ttf", 48)
+var FontBtn = mustLoadFont("font/fontbtn.ttf", 48)
+var FontSmall = mustLoadFont("font/fontui.ttf", 28)
 
 var PowerUpSprites = mustLoadImage("powers/powerup.png")
 var SuperPowerSprite = mustLoadImage("powers/superpower.png")
@@ -54,12 +55,11 @@ func init() {
 		log.Fatalf("Error creating audio context: %v", err)
 	}
 
-	// Background music disabled - uncomment to enable
-	// backgroundMusic = mustLoadSound("sounds/music.mp3")
-	// if backgroundMusic != nil {
-	// 	backgroundMusic.SetVolume(0.4)
-	// 	backgroundMusic.Play()
-	// }
+	backgroundMusic = mustLoadSound("sounds/music.mp3")
+	if backgroundMusic != nil {
+		backgroundMusic.SetVolume(0.3)
+		backgroundMusic.Play()
+	}
 
 	shootSoundData = tryLoadSoundData("sounds/shoot.mp3")
 	explosionSoundData = tryLoadSoundData("sounds/explosion.mp3")
@@ -131,35 +131,6 @@ func PlayGameOverSound() {
 	PlaySound(gameOverSoundData)
 }
 
-// UpdateAudio - Background music loop disabled
-func UpdateAudio() {
-	// Uncomment to enable background music loop
-	// if backgroundMusic == nil {
-	// 	return
-	// }
-	//
-	// if !backgroundMusic.IsPlaying() {
-	// 	if err := backgroundMusic.Rewind(); err != nil {
-	// 		return
-	// 	}
-	// 	backgroundMusic.Play()
-	// }
-}
-
-// GetMusicVolume retorna o volume atual da música
-func GetMusicVolume() float64 {
-	if backgroundMusic == nil {
-		return 0
-	}
-	return backgroundMusic.Volume()
-}
-
-func SetMusicVolume(volume float64) {
-	if backgroundMusic != nil {
-		backgroundMusic.SetVolume(volume)
-	}
-}
-
 func PauseMusic() {
 	if backgroundMusic != nil && backgroundMusic.IsPlaying() {
 		backgroundMusic.Pause()
@@ -172,30 +143,26 @@ func ResumeMusic() {
 	}
 }
 
-func tryLoadSound(name string) *audio.Player {
-	f, err := assets.Open(name)
-	if err != nil {
-		return nil
+func SetMusicVolume(volume float64) {
+	if backgroundMusic != nil {
+		backgroundMusic.SetVolume(volume)
 	}
-	defer f.Close()
+}
 
-	data, err := io.ReadAll(f)
-	if err != nil {
-		return nil
+func ShouldRestartMusic() bool {
+	return backgroundMusic != nil && !backgroundMusic.IsPlaying()
+}
+
+func RestartMusic() {
+	if backgroundMusic != nil {
+		backgroundMusic.Play()
 	}
+}
 
-	stream, err := mp3.DecodeWithSampleRate(44100, bytes.NewReader(data))
-	if err != nil {
-		return nil
+func UpdateAudio() {
+	if backgroundMusic != nil && !backgroundMusic.IsPlaying() {
+		backgroundMusic.Play()
 	}
-
-	player, err := audio.NewPlayer(AudioContext, io.NopCloser(stream))
-	if err != nil {
-		return nil
-	}
-
-	player.SetVolume(0.5)
-	return player
 }
 
 func mustLoadSound(name string) *audio.Player {
@@ -215,7 +182,7 @@ func mustLoadSound(name string) *audio.Player {
 		log.Fatalf("Error decoding audio %s: %v", name, err)
 	}
 
-	player, err := audio.NewPlayer(AudioContext, io.NopCloser(stream))
+	player, err := audio.NewPlayer(AudioContext, nopCloser{stream})
 	if err != nil {
 		log.Fatalf("Error creating audio player for %s: %v", name, err)
 	}
@@ -256,11 +223,7 @@ func mustLoadImages(path string) []*ebiten.Image {
 	return images
 }
 
-func mustLoadFont(name string) font.Face {
-	return mustLoadFontWithSize(name, 48)
-}
-
-func mustLoadFontWithSize(name string, size float64) font.Face {
+func mustLoadFont(name string, size float64) font.Face {
 	f, err := assets.ReadFile(name)
 	if err != nil {
 		fmt.Println("Error loading font", err)
@@ -269,16 +232,17 @@ func mustLoadFontWithSize(name string, size float64) font.Face {
 
 	tt, err := opentype.Parse(f)
 	if err != nil {
+		fmt.Println("Error parsing font", err)
 		panic(err)
 	}
 
 	face, err := opentype.NewFace(tt, &opentype.FaceOptions{
 		Size:    size,
 		DPI:     72,
-		Hinting: font.HintingVertical,
+		Hinting: font.HintingFull,
 	})
 	if err != nil {
-		fmt.Println("Error loading font", err)
+		fmt.Println("Error creating font face", err)
 		panic(err)
 	}
 

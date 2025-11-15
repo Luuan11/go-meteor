@@ -242,21 +242,23 @@ iframe {
     }
 
     .leaderboard-panel {
-        width: 90%;
-        max-width: 800px;
+        width: 400px;
+        max-width: 90vw;
         height: auto;
         min-height: 400px;
     }
 
     iframe {
-        width: 100%;
-        max-width: 800px;
-        height: 500px;
+        width: 90vw; 
+        max-width: 900px;
+        height: calc(90vw * 0.75); 
+        max-height: 675px;
+        min-height: 500px;
     }
 
     .tutorial {
         width: 90%;
-        max-width: 800px;
+        max-width: 900px;
         height: auto;
         min-height: 300px;
     }
@@ -269,9 +271,12 @@ iframe {
     }
 
     iframe {
-        width: 100%; 
-        height: 400px;
-        min-width: 280px;
+        width: 95vw;
+        height: calc(95vw * 0.75);
+        max-width: 768px;
+        max-height: 576px;
+        min-height: 450px;
+        min-width: 320px;
     }
 
     .leaderboard-panel {
@@ -313,7 +318,9 @@ iframe {
 
 @media (max-width: 480px) {
     iframe {
-        height: 350px;
+        height: calc(100vw * 0.75); /* Proporção 4:3 */
+        max-height: 500px;
+        min-height: 400px;
     }
 
     .tutorial h2 {

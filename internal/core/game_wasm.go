@@ -71,7 +71,6 @@ func (g *Game) showNameInputModal() {
 			if len(args) > 0 {
 				isTop := args[0].Bool()
 				if !isTop {
-					js.Global().Get("console").Call("log", "[Leaderboard] Score not high enough for top 10")
 					g.state = config.StateGameOver
 					return nil
 				}
@@ -125,4 +124,12 @@ func (g *Game) showModalInternal() {
 
 func (g *Game) hasNameInputModal() bool {
 	return true
+}
+
+func (g *Game) initNewGameSession() {
+	initFunc := js.Global().Get("initGameSession")
+	if !initFunc.IsUndefined() && !initFunc.IsNull() {
+		initFunc.Invoke()
+		js.Global().Get("console").Call("log", "[Game] New session token requested")
+	}
 }

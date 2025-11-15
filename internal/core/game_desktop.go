@@ -12,3 +12,6 @@ func (g *Game) showNameInputModal() {
 func (g *Game) hasNameInputModal() bool {
 	return false
 }
+
+func (g *Game) initNewGameSession() {
+}

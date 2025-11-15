@@ -9,7 +9,13 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text"
 	"github.com/hajimehoshi/ebiten/v2/vector"
-	"golang.org/x/image/font"
+)
+
+const (
+	PauseActionContinue = 0
+	PauseActionRestart  = 1
+	PauseActionQuit     = 2
+	PauseActionNone     = -1
 )
 
 type PauseMenu struct {
@@ -30,8 +36,8 @@ func (pm *PauseMenu) Draw(screen *ebiten.Image) {
 	screen.DrawImage(overlay, nil)
 
 	titleText := "PAUSED"
-	titleWidth := font.MeasureString(assets.FontUi, titleText)
-	titleX := (config.ScreenWidth - titleWidth.Ceil()) / 2
+	titleBounds := text.BoundString(assets.FontUi, titleText)
+	titleX := (config.ScreenWidth - titleBounds.Dx()) / 2
 	text.Draw(screen, titleText, assets.FontUi, titleX, 200, color.White)
 
 	for i, option := range pm.options {
@@ -41,8 +47,8 @@ func (pm *PauseMenu) Draw(screen *ebiten.Image) {
 			vector.DrawFilledRect(screen, float32((config.ScreenWidth-300)/2), float32(280+i*80), 300, 60, color.RGBA{100, 100, 100, 100}, false)
 		}
 
-		optionWidth := font.MeasureString(assets.FontUi, option)
-		optionX := (config.ScreenWidth - optionWidth.Ceil()) / 2
+		optionBounds := text.BoundString(assets.FontUi, option)
+		optionX := (config.ScreenWidth - optionBounds.Dx()) / 2
 		text.Draw(screen, option, assets.FontUi, optionX, 320+i*80, optionColor)
 	}
 }
@@ -62,5 +68,5 @@ func (pm *PauseMenu) Update() int {
 		return pm.selectedOption
 	}
 
-	return -1
+	return PauseActionNone
 }

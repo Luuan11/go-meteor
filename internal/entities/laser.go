@@ -44,30 +44,6 @@ func NewLaser(pos systems.Vector, isSuperPower bool) *Laser {
 	return b
 }
 
-func (l *Laser) Reset(pos systems.Vector, isSuperPower bool) {
-	sprite := assets.LaserSprite
-	speed := config.LaserSpeed
-
-	if isSuperPower {
-		sprite = assets.SuperPowerSprite
-		speed = config.SuperLaserSpeed
-	}
-
-	bounds := sprite.Bounds()
-	halfW := float64(bounds.Dx()) / 2
-	halfH := float64(bounds.Dy()) / 2
-
-	pos.X -= halfW
-	pos.Y -= halfH
-
-	l.position = pos
-	l.speed = speed
-	l.rotation = 0
-	l.rotationSpeed = config.MeteorRotationMax * 2
-	l.sprite = sprite
-	l.isSuperPower = isSuperPower
-}
-
 func (l *Laser) Update() {
 	l.position.Y += -l.speed
 	l.rotation += l.rotationSpeed
