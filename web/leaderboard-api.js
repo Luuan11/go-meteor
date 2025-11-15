@@ -9,7 +9,6 @@ const API_URL = 'https://go-meteor.vercel.app/api/leaderboard';
 const RECAPTCHA_SITE_KEY = '6LdWFgwsAAAAAAMzR76ilX1OUF56FtKjU2yOlvcG';
 const FRONTEND_VERSION = '0.2.0';
 
-window.initGameSession();
 
 async function loadLeaderboard() {
   const now = Date.now();
@@ -199,7 +198,6 @@ window.isTopScore = async function(score) {
 document.addEventListener('DOMContentLoaded', async () => {
   const leaderboard = await loadLeaderboard();
   updateLeaderboardUI(leaderboard);
-  
   // Auto-refresh every 30 seconds
   setInterval(async () => {
     lastFetchTime = 0;
