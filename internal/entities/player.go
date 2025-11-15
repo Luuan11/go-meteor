@@ -143,7 +143,9 @@ func (p *Player) Update() {
 	}
 
 	p.shootCooldown.Update()
+}
 
+func (p *Player) UpdateTimers() {
 	if p.isInvincible {
 		p.invincibilityTimer.Update()
 		if p.invincibilityTimer.IsReady() {
@@ -164,9 +166,9 @@ func (p *Player) Draw(screen *ebiten.Image) {
 
 	if p.hasShield {
 		if (p.shieldTimer.CurrentTicks()/5)%2 == 0 {
-			op.ColorM.Scale(0.5, 0.7, 1, 0.9)
+			op.ColorM.Scale(0.5, 0.7, 1, 1)
 		} else {
-			op.ColorM.Scale(0.6, 0.8, 1, 0.85)
+			op.ColorM.Scale(0.6, 0.8, 1, 1)
 		}
 	} else if p.isInvincible {
 		if (p.invincibilityTimer.CurrentTicks()/5)%2 == 0 {
@@ -180,7 +182,6 @@ func (p *Player) Draw(screen *ebiten.Image) {
 
 func (p *Player) TakeDamage() bool {
 	if p.hasShield {
-		p.hasShield = false
 		assets.PlayPowerUpSound()
 		return false
 	}
@@ -218,10 +219,6 @@ func (p *Player) GetLives() int {
 	return p.lives
 }
 
-func (p *Player) GetPosition() systems.Vector {
-	return p.position
-}
-
 func (p *Player) Heal() {
 	if p.lives < config.InitialLives {
 		p.lives++
@@ -237,9 +234,6 @@ func (p *Player) HasShield() bool {
 	return p.hasShield
 }
 
-func (p *Player) GetShieldProgress() float64 {
-	if !p.hasShield {
-		return 0
-	}
-	return 1.0 - p.shieldTimer.Progress()
+func (p *Player) ShieldProgress() float64 {
+	return p.shieldTimer.Progress()
 }

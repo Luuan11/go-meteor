@@ -29,6 +29,7 @@ type Game struct {
 	comboTimer        *systems.Timer
 	menu              *ui.Menu
 	pauseMenu         *ui.PauseMenu
+	notification      *ui.Notification
 
 	player           *entities.Player
 	meteors          []*entities.Meteor
@@ -57,14 +58,9 @@ type Game struct {
 	pauseIconX int
 	pauseIconY int
 
-	lifeNotificationTimer int
-	showLifeNotification  bool
-
 	leaderboard *systems.Leaderboard
 	storage     systems.Storage
 	highScore   int
-
-	isTopScore bool
 }
 
 func NewGame() *Game {
@@ -80,6 +76,7 @@ func NewGame() *Game {
 		meteorPool:        entities.NewMeteorPool(),
 		laserPool:         entities.NewLaserPool(),
 		powerUpPool:       entities.NewPowerUpPool(),
+		notification:      ui.NewNotification(),
 		wave:              1,
 		isMobile:          false,
 		touchDetected:     false,
@@ -103,7 +100,9 @@ func NewGame() *Game {
 }
 
 func (g *Game) Update() error {
-	assets.UpdateAudio()
+	if assets.ShouldRestartMusic() {
+		assets.RestartMusic()
+	}
 
 	g.updateStars()
 
@@ -136,15 +135,13 @@ func (g *Game) updateMenu() error {
 
 	if g.menu.IsReady() {
 		g.planets = nil
+		g.initNewGameSession()
 		g.state = config.StatePlaying
 	}
 
-	g.planetSpawnTimer.Update()
-	if g.planetSpawnTimer.IsReady() {
-		g.planetSpawnTimer.Reset()
-		s := entities.NewPlanet()
-		g.planets = append(g.planets, s)
-	}
+	g.updateAndSpawn(g.planetSpawnTimer, func() {
+		g.planets = append(g.planets, entities.NewPlanet())
+	})
 
 	for _, m := range g.planets {
 		m.Update()
@@ -155,85 +152,39 @@ func (g *Game) updateMenu() error {
 }
 
 func (g *Game) updatePlaying() error {
-	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) || inpututil.IsKeyJustPressed(ebiten.KeyP) {
+	if g.shouldPause() {
+		assets.PauseMusic()
 		g.state = config.StatePaused
 		return nil
 	}
 
-	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
-		x, y := ebiten.CursorPosition()
-		if x >= g.pauseIconX && x <= g.pauseIconX+30 && y >= g.pauseIconY && y <= g.pauseIconY+30 {
-			g.state = config.StatePaused
-			return nil
-		}
-	}
-
-	var touchIDs []ebiten.TouchID
-	touchIDs = ebiten.AppendTouchIDs(touchIDs)
-
-	for _, id := range touchIDs {
-		x, y := ebiten.TouchPosition(id)
-		if x >= g.pauseIconX && x <= g.pauseIconX+30 && y >= g.pauseIconY && y <= g.pauseIconY+30 {
-			g.state = config.StatePaused
-			return nil
-		}
-	}
+	touchIDs := ebiten.AppendTouchIDs(nil)
 
 	if len(touchIDs) > 0 && !g.touchDetected {
 		g.touchDetected = true
 		g.isMobile = true
 	}
 
-	if g.isMobile {
-		g.joystick.Update(touchIDs)
-		if g.shootButton.Update(touchIDs) {
-			g.player.Shoot()
-		}
-
-		dx, dy := g.joystick.GetDirection()
-		if g.joystick.IsPressed() {
-			if dx < -0.3 {
-				g.player.MoveLeft()
-			}
-			if dx > 0.3 {
-				g.player.MoveRight()
-			}
-			if dy < -0.3 {
-				g.player.MoveUp()
-			}
-			if dy > 0.3 {
-				g.player.MoveDown()
-			}
-		}
-	}
-
+	g.handleMobileControls(touchIDs)
 	g.player.Update()
+	g.notification.Update()
 
 	speedMultiplier := 1.0 + float64(g.wave-1)*0.15
-	meteorsPerWave := 1
-	if g.wave > 1 {
-		meteorsPerWave = 1 + (g.wave-1)/5
-	}
+	meteorsPerWave := max(1, 1+(g.wave-1)/5)
 
-	g.meteorSpawnTimer.Update()
-	if g.meteorSpawnTimer.IsReady() {
-		g.meteorSpawnTimer.Reset()
-
+	g.updateAndSpawn(g.meteorSpawnTimer, func() {
 		for i := 0; i < meteorsPerWave; i++ {
 			m := g.meteorPool.Get()
 			m.Reset(speedMultiplier)
 			g.meteors = append(g.meteors, m)
 		}
-	}
+	})
 
-	g.powerUpSpawnTimer.Update()
-	if g.powerUpSpawnTimer.IsReady() {
-		g.powerUpSpawnTimer.Reset()
-
+	g.updateAndSpawn(g.powerUpSpawnTimer, func() {
 		p := g.powerUpPool.Get()
 		p.Reset()
 		g.powerUps = append(g.powerUps, p)
-	}
+	})
 
 	if g.superPowerActive {
 		g.superPowerTimer.Update()
@@ -269,18 +220,11 @@ func (g *Game) updatePlaying() error {
 		return nil
 	}
 
+	g.player.UpdateTimers()
+
 	g.cleanObjects()
 
-	if g.screenShake > 0 {
-		g.screenShake--
-	}
-
-	if g.showLifeNotification {
-		g.lifeNotificationTimer--
-		if g.lifeNotificationTimer <= 0 {
-			g.showLifeNotification = false
-		}
-	}
+	g.screenShake = max(0, g.screenShake-1)
 
 	return nil
 }
@@ -288,31 +232,20 @@ func (g *Game) updatePlaying() error {
 func (g *Game) updatePaused() error {
 	action := g.pauseMenu.Update()
 
-	if action == 0 {
+	switch action {
+	case ui.PauseActionContinue:
+		assets.ResumeMusic()
 		g.state = config.StatePlaying
-	} else if action == 1 {
+	case ui.PauseActionRestart:
 		g.Reset()
+		assets.ResumeMusic()
 		g.state = config.StatePlaying
-	} else if action == 2 {
-		for _, m := range g.meteors {
-			g.meteorPool.Put(m)
-		}
-		for _, l := range g.lasers {
-			g.laserPool.Put(l)
-		}
-		for _, p := range g.powerUps {
-			g.powerUpPool.Put(p)
-		}
-		g.meteors = nil
-		g.lasers = nil
-		g.powerUps = nil
-		g.particles = nil
-		g.player = entities.NewPlayer(g)
-		g.menu.Reset()
-		g.state = config.StateMenu
+	case ui.PauseActionQuit:
+		g.returnToMenu()
 	}
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) || inpututil.IsKeyJustPressed(ebiten.KeyP) {
+		assets.ResumeMusic()
 		g.state = config.StatePlaying
 	}
 
@@ -320,39 +253,25 @@ func (g *Game) updatePaused() error {
 }
 
 func (g *Game) updateGameOver() error {
-	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) || inpututil.IsKeyJustPressed(ebiten.KeySpace) {
-		g.Reset()
-		g.menu.Reset()
-		g.state = config.StateMenu
+	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) ||
+		inpututil.IsKeyJustPressed(ebiten.KeySpace) ||
+		inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		g.returnToMenu()
 		return nil
 	}
 
-	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
-		g.Reset()
-		g.menu.Reset()
-		g.state = config.StateMenu
-		return nil
-	}
-
-	var touchIDs []ebiten.TouchID
-	touchIDs = inpututil.AppendJustPressedTouchIDs(touchIDs)
+	touchIDs := inpututil.AppendJustPressedTouchIDs(nil)
 	if len(touchIDs) > 0 {
-		g.Reset()
-		g.menu.Reset()
-		g.state = config.StateMenu
-		return nil
+		g.returnToMenu()
 	}
 
 	return nil
 }
 
 func (g *Game) updateStars() {
-	g.starSpawnTimer.Update()
-	if g.starSpawnTimer.IsReady() {
-		g.starSpawnTimer.Reset()
-		s := entities.NewStar()
-		g.stars = append(g.stars, s)
-	}
+	g.updateAndSpawn(g.starSpawnTimer, func() {
+		g.stars = append(g.stars, entities.NewStar())
+	})
 
 	for _, m := range g.stars {
 		m.Update()
@@ -393,17 +312,19 @@ func (g *Game) checkCollisions() bool {
 		}
 	}
 
-	for _, m := range g.meteors {
-		if m.Collider().Intersects(g.player.Collider()) {
+	for i := len(g.meteors) - 1; i >= 0; i-- {
+		if g.meteors[i].Collider().Intersects(g.player.Collider()) {
 			isDead := g.player.TakeDamage()
+
+			g.meteorPool.Put(g.meteors[i])
+			g.meteors = append(g.meteors[:i], g.meteors[i+1:]...)
+
 			if isDead {
 				g.saveHighScore()
 				if g.leaderboard.IsTopScore(g.score) && g.hasNameInputModal() {
-					g.isTopScore = true
 					g.state = config.StateWaitingNameInput
 					g.showNameInputModal()
 				} else {
-					g.isTopScore = false
 					g.state = config.StateGameOver
 				}
 				return true
@@ -423,12 +344,13 @@ func (g *Game) checkCollisions() bool {
 			case entities.PowerUpSuperShot:
 				g.superPowerActive = true
 				g.superPowerTimer.Reset()
+				g.notification.Show("SUPER POWER!", ui.NotificationSuperPower)
 			case entities.PowerUpHeart:
 				g.player.Heal()
-				g.showLifeNotification = true
-				g.lifeNotificationTimer = 120
+				g.notification.Show("+1 LIFE", ui.NotificationLife)
 			case entities.PowerUpShield:
 				g.player.ActivateShield()
+				g.notification.Show("SHIELD ACTIVE", ui.NotificationShield)
 			}
 
 			assets.PlayPowerUpSound()
@@ -543,6 +465,7 @@ func (g *Game) drawPlaying(screen *ebiten.Image) {
 	}
 
 	g.drawUI(screen)
+	g.notification.Draw(screen)
 }
 
 func (g *Game) drawUI(screen *ebiten.Image) {
@@ -552,23 +475,36 @@ func (g *Game) drawUI(screen *ebiten.Image) {
 	}
 
 	waveText := fmt.Sprintf("Wave: %d", g.wave)
-	text.Draw(screen, waveText, assets.FontSmall, 20, 65, color.White)
+	drawText(screen, waveText, assets.FontSmall, 20, 65, color.White)
 
 	if g.combo > 1 {
 		comboText := fmt.Sprintf("%d COMBO", g.combo)
 		comboColor := color.RGBA{255, 200, 0, 255}
-		text.Draw(screen, comboText, assets.FontSmall, 20, 105, comboColor)
+		drawText(screen, comboText, assets.FontSmall, 20, 105, comboColor)
 	}
 
 	scoreText := fmt.Sprintf("Points: %d", g.score)
-	text.Draw(screen, scoreText, assets.FontUi, 20, 570, color.White)
+	drawText(screen, scoreText, assets.FontUi, 20, 570, color.White)
 
 	highScoreText := fmt.Sprintf("HIGH SCORE: %d", g.highScore)
-	highScoreWidth := font.MeasureString(assets.FontUi, highScoreText)
-	highScoreX := config.ScreenWidth - highScoreWidth.Ceil() - 20
-	text.Draw(screen, highScoreText, assets.FontUi, highScoreX, 570, color.White)
+	highScoreWidth := measureText(highScoreText, assets.FontUi)
+	highScoreX := config.ScreenWidth - highScoreWidth - 20
+	drawText(screen, highScoreText, assets.FontUi, highScoreX, 570, color.White)
 
 	ui.DrawPauseIcon(screen, g.pauseIconX, g.pauseIconY)
+
+	barY := float32(100)
+
+	if g.superPowerActive {
+		progress := float32(g.superPowerTimer.Progress())
+		ui.DrawPowerUpBar(screen, "SUPER POWER", progress, color.RGBA{255, 100, 255, 255})
+		barY += 30
+	}
+
+	if g.player.HasShield() {
+		progress := float32(g.player.ShieldProgress())
+		ui.DrawPowerUpBarAt(screen, progress, color.RGBA{100, 200, 255, 255}, barY)
+	}
 
 	if g.isMobile {
 		g.joystick.Draw(screen)
@@ -578,29 +514,96 @@ func (g *Game) drawUI(screen *ebiten.Image) {
 
 func (g *Game) drawGameOver(screen *ebiten.Image) {
 	youDiedText := "YOU DIED"
-	youDiedWidth := font.MeasureString(assets.FontUi, youDiedText)
-	youDiedX := (config.ScreenWidth - youDiedWidth.Ceil()) / 2
-	text.Draw(screen, youDiedText, assets.FontUi, youDiedX, 300, color.White)
+	youDiedWidth := measureText(youDiedText, assets.FontUi)
+	youDiedX := (config.ScreenWidth - youDiedWidth) / 2
+	drawText(screen, youDiedText, assets.FontUi, youDiedX, 300, color.White)
 
 	tryAgainText := "Press ENTER to try again"
-	tryAgainWidth := font.MeasureString(assets.FontUi, tryAgainText)
-	tryAgainX := (config.ScreenWidth - tryAgainWidth.Ceil()) / 2
-	text.Draw(screen, tryAgainText, assets.FontUi, tryAgainX, 400, color.White)
+	tryAgainWidth := measureText(tryAgainText, assets.FontUi)
+	tryAgainX := (config.ScreenWidth - tryAgainWidth) / 2
+	drawText(screen, tryAgainText, assets.FontUi, tryAgainX, 400, color.White)
 
 	scoreText := fmt.Sprintf("Points: %d", g.score)
-	text.Draw(screen, scoreText, assets.FontUi, 20, 570, color.White)
+	drawText(screen, scoreText, assets.FontUi, 20, 570, color.White)
 
-	highScoreText := fmt.Sprintf("High Score: %d", g.highScore)
-	highScoreWidth := font.MeasureString(assets.FontUi, highScoreText)
-	highScoreX := config.ScreenWidth - highScoreWidth.Ceil() - 20
-	text.Draw(screen, highScoreText, assets.FontUi, highScoreX, 570, color.White)
+	highScoreText := fmt.Sprintf("HIGH SCORE: %d", g.highScore)
+	highScoreWidth := measureText(highScoreText, assets.FontUi)
+	highScoreX := config.ScreenWidth - highScoreWidth - 20
+	drawText(screen, highScoreText, assets.FontUi, highScoreX, 570, color.White)
 }
 
 func (g *Game) AddLaser(l *entities.Laser) {
 	g.lasers = append(g.lasers, l)
 }
 
-func (g *Game) Reset() {
+func (g *Game) updateAndSpawn(timer *systems.Timer, spawnFunc func()) {
+	timer.Update()
+	if timer.IsReady() {
+		timer.Reset()
+		spawnFunc()
+	}
+}
+
+func (g *Game) shouldPause() bool {
+	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) || inpututil.IsKeyJustPressed(ebiten.KeyP) {
+		return true
+	}
+
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		x, y := ebiten.CursorPosition()
+		if g.isPauseIconClicked(x, y) {
+			return true
+		}
+	}
+
+	touchIDs := ebiten.AppendTouchIDs(nil)
+	for _, id := range touchIDs {
+		x, y := ebiten.TouchPosition(id)
+		if g.isPauseIconClicked(x, y) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (g *Game) isPauseIconClicked(x, y int) bool {
+	const iconSize = 30
+	return x >= g.pauseIconX && x <= g.pauseIconX+iconSize &&
+		y >= g.pauseIconY && y <= g.pauseIconY+iconSize
+}
+
+func (g *Game) handleMobileControls(touchIDs []ebiten.TouchID) {
+	if !g.isMobile {
+		return
+	}
+
+	g.joystick.Update(touchIDs)
+	if g.shootButton.Update(touchIDs) {
+		g.player.Shoot()
+	}
+
+	dx, dy := g.joystick.GetDirection()
+	if !g.joystick.IsPressed() {
+		return
+	}
+
+	const threshold = 0.3
+	if dx < -threshold {
+		g.player.MoveLeft()
+	}
+	if dx > threshold {
+		g.player.MoveRight()
+	}
+	if dy < -threshold {
+		g.player.MoveUp()
+	}
+	if dy > threshold {
+		g.player.MoveDown()
+	}
+}
+
+func (g *Game) clearPools() {
 	for _, m := range g.meteors {
 		g.meteorPool.Put(m)
 	}
@@ -610,6 +613,22 @@ func (g *Game) Reset() {
 	for _, p := range g.powerUps {
 		g.powerUpPool.Put(p)
 	}
+}
+
+func (g *Game) returnToMenu() {
+	g.clearPools()
+	g.meteors = nil
+	g.lasers = nil
+	g.powerUps = nil
+	g.particles = nil
+	g.player = entities.NewPlayer(g)
+	g.Reset()
+	g.menu.Reset()
+	g.state = config.StateMenu
+}
+
+func (g *Game) Reset() {
+	g.clearPools()
 
 	g.player = entities.NewPlayer(g)
 	g.meteors = nil
@@ -628,6 +647,7 @@ func (g *Game) Reset() {
 	g.wave = 1
 	g.superPowerActive = false
 	g.screenShake = 0
+	g.initNewGameSession()
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -661,18 +681,11 @@ func (g *Game) loadLeaderboard() {
 	}
 }
 
-func (g *Game) saveLeaderboard() {
-	data, err := g.leaderboard.ToJSON()
-	if err == nil {
-		g.storage.SaveLeaderboard(data)
-	}
+func drawText(screen *ebiten.Image, txt string, face font.Face, x, y int, clr color.Color) {
+	text.Draw(screen, txt, face, x, y, clr)
 }
 
-func (g *Game) addScoreToLeaderboard(name string, score int) {
-	// Add to local leaderboard
-	g.leaderboard.AddScore(name, score)
-	g.saveLeaderboard()
-
-	// Also notify web leaderboard if running in browser
-	g.notifyWebLeaderboard(name, score)
+func measureText(txt string, face font.Face) int {
+	bounds := text.BoundString(face, txt)
+	return bounds.Dx()
 }
