@@ -145,16 +145,12 @@ function escapeHtml(text) {
 }
 
 window.updateLeaderboard = async function(playerName, score, sessionToken) {
-  console.log('[Firebase] Received score update request');
-  
   if (!sessionToken || sessionToken !== gameSessionToken) {
-    console.error('[Firebase] Invalid session token - score rejected');
     return false;
   }
   
   const now = Date.now();
   if (now - lastScoreSaveTime < MIN_SCORE_INTERVAL) {
-    console.error('[Firebase] Too many score updates - rate limited');
     return false;
   }
   
@@ -163,7 +159,6 @@ window.updateLeaderboard = async function(playerName, score, sessionToken) {
   
   const success = await saveScore(playerName, score);
   if (success) {
-    console.log('[Firebase] Score saved successfully');
     const leaderboard = await loadLeaderboard();
     updateLeaderboardUI(leaderboard);
   }
@@ -172,7 +167,6 @@ window.updateLeaderboard = async function(playerName, score, sessionToken) {
 
 window.initGameSession = function() {
   gameSessionToken = Math.random().toString(36).substring(2) + Date.now().toString(36);
-  console.log('[Firebase] Game session initialized');
   return gameSessionToken;
 };
 

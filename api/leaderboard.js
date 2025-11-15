@@ -93,12 +93,10 @@ function isValidSession(sessionToken) {
   const tokenTimestamp = parseInt(parts[0], 10);
   const currentTime = Date.now();
 
-  // Token deve ter no máximo 30 minutos (tempo razoável de uma partida)
   if (currentTime - tokenTimestamp > 30 * 60 * 1000) {
     return false;
   }
   
-  // Token não pode ser do futuro (tolerância de 1 minuto para diferenças de clock)
   if (tokenTimestamp - currentTime > 60 * 1000) {
     return false;
   }
@@ -140,7 +138,7 @@ function validateScore(name, score, sessionToken) {
 }
 
 const rateLimitMap = new Map();
-const usedTokens = new Map(); // Blacklist de tokens já usados
+const usedTokens = new Map();
 
 function checkRateLimit(ip) {
   const now = Date.now();
@@ -295,7 +293,6 @@ export default async function handler(req, res) {
             await db.ref('leaderboard').child(entry.key).remove();
           }
           
-          console.log(`[Cleanup] Removed ${toDelete.length} entries, keeping TOP 50`);
         }
       } catch (cleanupError) {
         console.error('[Cleanup] Error cleaning leaderboard:', cleanupError);

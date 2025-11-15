@@ -9,13 +9,7 @@ const API_URL = 'https://go-meteor.vercel.app/api/leaderboard';
 const RECAPTCHA_SITE_KEY = '6LdWFgwsAAAAAAMzR76ilX1OUF56FtKjU2yOlvcG';
 const FRONTEND_VERSION = '0.2.0';
 
-// Initialize session token immediately (before WASM loads)
-(function initSessionImmediately() {
-  const timestamp = Date.now();
-  const random = Math.random().toString(36).substring(2, 15);
-  gameSessionToken = `${timestamp}-${random}`;
-  window.gameSessionToken = gameSessionToken;
-})();
+window.initGameSession();
 
 async function loadLeaderboard() {
   const now = Date.now();
@@ -54,22 +48,18 @@ async function saveScore(playerName, score, signature, timestamp) {
   const trimmedName = playerName ? playerName.trim() : '';
   
   if (!trimmedName || trimmedName.length < 2 || trimmedName.length > 15) {
-    console.error('[Validation] Invalid player name: must be 2-15 characters');
     return false;
   }
   
   if (score < 0 || score > 999999) {
-    console.error('[Validation] Invalid score range:', score);
     return false;
   }
   
   if (!gameSessionToken) {
-    console.error('[Session] No valid session token');
     return false;
   }
 
   if (!signature || !timestamp) {
-    console.error('[Security] Missing signature or timestamp');
     return false;
   }
   
@@ -85,7 +75,6 @@ async function saveScore(playerName, score, signature, timestamp) {
         });
       });
     } catch (error) {
-      console.warn('[reCAPTCHA] Verification skipped:', error.message);
     }
   }
   
@@ -107,13 +96,11 @@ async function saveScore(playerName, score, signature, timestamp) {
     
     if (!response.ok) {
       const error = await response.json();
-      console.error('[API] Failed to save score:', error);
       return false;
     }
     
     return true;
   } catch (error) {
-    console.error('[API] Network error:', error.message);
     return false;
   }
 }
@@ -159,18 +146,15 @@ function escapeHtml(text) {
 
 window.updateLeaderboard = async function(playerName, score, signature, timestamp) {
   if (!gameSessionToken) {
-    console.error('[Session] Invalid session');
     return false;
   }
 
   if (!signature || !timestamp) {
-    console.error('[Security] Missing signature or timestamp');
     return false;
   }
   
   const now = Date.now();
   if (now - lastScoreSaveTime < MIN_SCORE_INTERVAL) {
-    console.error('[RateLimit] Please wait before submitting again');
     return false;
   }
   
