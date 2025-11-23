@@ -1,15 +1,9 @@
 # Go-meteor
 
-<p align="center"
-    
-![image](https://github.com/user-attachments/assets/452a33eb-706a-4f76-ab61-69aa30240440)
-
-
-</p>
+<img width="1564" height="709" alt="image" src="https://github.com/user-attachments/assets/415f16a6-f511-41fa-9ab0-6ae024d574ed" />
 
 ## <p align="center"> <a href="https://luuan11.github.io/go-meteor/">Click here to play this game!</a> </p>
 
-📜 Game made with Golang and the ebiten package.
 
 ## 💬 About
 Interactive game project made entirely with GO, where you can control your player, destroy meteors, collect power-ups, all to increase your score.
@@ -17,6 +11,7 @@ Interactive game project made entirely with GO, where you can control your playe
 ## 💡 Technologies:
 - Go
 - Ebiten package
+- Firebase
 
 ## ✅ Features:
 - Playable on both Desktop and Mobile
