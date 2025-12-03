@@ -35,19 +35,19 @@ const (
 	WaveMeteoIncrease  = 2
 	WaveScoreThreshold = 50
 
-	ParticleLifetime = 30
-	ParticleCount    = 15
+	ParticleLifetime = 20
+	ParticleCount    = 8
 	ParticleSpeed    = 3.0
 
 	ScreenShakeDuration  = 10
 	ScreenShakeIntensity = 8.0
 
-	// Boss constants
-	BossHealth            = 75
-	BossSpeed             = 3.0
-	BossShootCooldown     = 2 * time.Second
-	BossProjectileSpeed   = 5.0
-	BossReward            = 100
-	BossCooldownTime      = 30 * time.Second
-	BossScoreThreshold    = 200
+	BossWaveInterval    = 5
+	BossScoreThreshold  = 250
+	BossHealth          = 75
+	BossSpeed           = 3.0
+	BossShootCooldown   = time.Millisecond * 800
+	BossProjectileSpeed = 5.0
+	BossReward          = 100
+	BossCooldownTime    = 15 * time.Second
 )
