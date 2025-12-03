@@ -5,7 +5,7 @@ import (
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 type Joystick struct {
@@ -87,11 +87,12 @@ func (j *Joystick) Draw(screen *ebiten.Image) {
 		knobColor = color.RGBA{255, 255, 255, 220}
 	}
 
-	ebitenutil.DrawCircle(screen, j.centerX, j.centerY, j.radius, baseColor)
+	// Otimizado: usa vector ao invés de ebitenutil
+	vector.DrawFilledCircle(screen, float32(j.centerX), float32(j.centerY), float32(j.radius), baseColor, false)
 
 	knobX := j.centerX + j.deltaX*j.radius*0.6
 	knobY := j.centerY + j.deltaY*j.radius*0.6
-	ebitenutil.DrawCircle(screen, knobX, knobY, j.knobRadius, knobColor)
+	vector.DrawFilledCircle(screen, float32(knobX), float32(knobY), float32(j.knobRadius), knobColor, false)
 }
 
 func (j *Joystick) GetDirection() (float64, float64) {
@@ -166,8 +167,9 @@ func (sb *ShootButton) Draw(screen *ebiten.Image) {
 		buttonColor = color.RGBA{255, 150, 150, 180}
 	}
 
-	ebitenutil.DrawCircle(screen, sb.x, sb.y, sb.radius, buttonColor)
+	// Otimizado: usa vector ao invés de ebitenutil
+	vector.DrawFilledCircle(screen, float32(sb.x), float32(sb.y), float32(sb.radius), buttonColor, false)
 
 	circleColor := color.RGBA{255, 255, 255, 200}
-	ebitenutil.DrawCircle(screen, sb.x, sb.y, sb.radius*0.4, circleColor)
+	vector.DrawFilledCircle(screen, float32(sb.x), float32(sb.y), float32(sb.radius*0.4), circleColor, false)
 }

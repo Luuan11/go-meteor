@@ -24,9 +24,11 @@ var PlayerSprite = mustLoadImage("profile/player.png")
 var LaserSprite = mustLoadImage("profile/laser.png")
 var GopherPlayer = mustLoadImage("profile/go_player.png")
 var PauseIcon = mustLoadImage("profile/pause_icon.png")
+var BossSprite = mustLoadImage("boss/boss_ship.png")
+var HeartFilledSprite = mustLoadImage("profile/heart_filled.png")
+var HeartEmptySprite = mustLoadImage("profile/heart_empty.png")
 
 var MeteorSprites = mustLoadImages("meteors/*.png")
-var StarsSprites = mustLoadImages("stars/*.png")
 var PlanetsSprites = mustLoadImages("planets/*.png")
 
 var ScoreFont = mustLoadFont("font/font.ttf", 72)

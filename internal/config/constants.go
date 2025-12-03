@@ -41,4 +41,13 @@ const (
 
 	ScreenShakeDuration  = 10
 	ScreenShakeIntensity = 8.0
+
+	// Boss constants
+	BossHealth            = 75
+	BossSpeed             = 3.0
+	BossShootCooldown     = 2 * time.Second
+	BossProjectileSpeed   = 5.0
+	BossReward            = 100
+	BossCooldownTime      = 30 * time.Second
+	BossScoreThreshold    = 200
 )
