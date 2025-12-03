@@ -127,6 +127,7 @@ iframe {
     font-weight: bold;
     font-size: 16px;
     color: #8f2fe9;
+    font-family: 'Poppins', sans-serif;
 }
 
 .rank-1 .entry-score { color: #ffd700; }
@@ -314,6 +315,83 @@ iframe {
     .credits a {
         font-size: 16px;
     }
+}
+
+/* Notification System */
+.notification-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+}
+
+.notification {
+    background: rgba(0, 0, 0, 0.9);
+    border-radius: 8px;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    transform: translateX(400px);
+    transition: all 0.3s ease;
+    pointer-events: all;
+    min-width: 250px;
+    max-width: 400px;
+}
+
+.notification.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.notification-icon {
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.notification-message {
+    font-family: 'Poppins', sans-serif;
+    font-size: 14px;
+    color: white;
+    flex: 1;
+}
+
+.notification-success {
+    border-left: 4px solid #4caf50;
+}
+
+.notification-success .notification-icon {
+    color: #4caf50;
+}
+
+.notification-error {
+    border-left: 4px solid #f44336;
+}
+
+.notification-error .notification-icon {
+    color: #f44336;
+}
+
+.notification-warning {
+    border-left: 4px solid #ff9800;
+}
+
+.notification-warning .notification-icon {
+    color: #ff9800;
+}
+
+.notification-info {
+    border-left: 4px solid #2196f3;
+}
+
+.notification-info .notification-icon {
+    color: #2196f3;
 }
 
 @media (max-width: 480px) {

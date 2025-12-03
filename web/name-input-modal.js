@@ -1,6 +1,8 @@
 let nameInputModal = null;
 let nameInputField = null;
 let nameInputCallback = null;
+let eventListeners = [];
+let isSubmitting = false;
 
 function createNameInputModal() {
   const modal = document.createElement('div');
@@ -35,40 +37,59 @@ function createNameInputModal() {
   document.body.appendChild(modal);
   nameInputModal = modal;
   nameInputField = document.getElementById('player-name-input');
+  isSubmitting = false;
   
   const charCount = document.getElementById('char-count');
-  nameInputField.addEventListener('input', (e) => {
+  const inputHandler = (e) => {
     charCount.textContent = e.target.value.length;
-  });
-  
-  nameInputField.addEventListener('keypress', (e) => {
+  };
+  const keypressHandler = (e) => {
     if (e.key === 'Enter') {
       submitName();
     }
-  });
-  
-  nameInputField.addEventListener('keydown', (e) => {
+  };
+  const keydownHandler = (e) => {
     if (e.key === 'Escape') {
       closeModal();
     }
-  });
-  
-  document.getElementById('submit-name-btn').addEventListener('click', submitName);
-  document.getElementById('cancel-name-btn').addEventListener('click', closeModal);
-  
-  modal.addEventListener('click', (e) => {
+  };
+  const submitBtn = document.getElementById('submit-name-btn');
+  const cancelBtn = document.getElementById('cancel-name-btn');
+  const submitHandler = () => submitName();
+  const cancelHandler = () => closeModal();
+  const modalClickHandler = (e) => {
     if (e.target === modal) {
       closeModal();
     }
-  });
+  };
+  
+  nameInputField.addEventListener('input', inputHandler);
+  nameInputField.addEventListener('keypress', keypressHandler);
+  nameInputField.addEventListener('keydown', keydownHandler);
+  submitBtn.addEventListener('click', submitHandler);
+  cancelBtn.addEventListener('click', cancelHandler);
+  modal.addEventListener('click', modalClickHandler);
+  
+  eventListeners = [
+    { element: nameInputField, event: 'input', handler: inputHandler },
+    { element: nameInputField, event: 'keypress', handler: keypressHandler },
+    { element: nameInputField, event: 'keydown', handler: keydownHandler },
+    { element: submitBtn, event: 'click', handler: submitHandler },
+    { element: cancelBtn, event: 'click', handler: cancelHandler },
+    { element: modal, event: 'click', handler: modalClickHandler }
+  ];
 }
 
 function submitName() {
+  if (isSubmitting) return;
+  isSubmitting = true;
+  
   let name = nameInputField.value.trim();
   
   if (!name || name.length < 2) {
     nameInputField.classList.add('error');
     setTimeout(() => nameInputField.classList.remove('error'), 500);
+    isSubmitting = false;
     return;
   }
   
@@ -80,6 +101,7 @@ function submitName() {
   if (!validName || validName.length < 2) {
     nameInputField.classList.add('error');
     setTimeout(() => nameInputField.classList.remove('error'), 500);
+    isSubmitting = false;
     return;
   }
   
@@ -91,19 +113,28 @@ function submitName() {
 }
 
 function closeModal() {
-  if (nameInputCallback) {
+  if (nameInputCallback && !isSubmitting) {
     nameInputCallback('');
     nameInputCallback = null;
   }
   
   if (nameInputModal) {
     nameInputModal.classList.remove('show');
+    
+    eventListeners.forEach(({ element, event, handler }) => {
+      if (element) {
+        element.removeEventListener(event, handler);
+      }
+    });
+    eventListeners = [];
+    
     setTimeout(() => {
       if (nameInputModal && nameInputModal.parentNode) {
         nameInputModal.parentNode.removeChild(nameInputModal);
       }
       nameInputModal = null;
       nameInputField = null;
+      isSubmitting = false;
     }, 300);
   }
 }

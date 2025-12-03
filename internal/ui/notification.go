@@ -18,6 +18,7 @@ const (
 	NotificationLife NotificationType = iota
 	NotificationShield
 	NotificationSuperPower
+	NotificationWarning
 )
 
 type Notification struct {
@@ -75,6 +76,8 @@ func (n *Notification) Draw(screen *ebiten.Image) {
 		hue := float64(n.timer.CurrentTicks()%60) / 60.0
 		r, g, b := hslToRGB(hue, 1.0, 0.6)
 		textColor = color.RGBA{R: r, G: g, B: b, A: uint8(255 * alpha)}
+	case NotificationWarning:
+		textColor = color.RGBA{R: 255, G: 50, B: 50, A: uint8(255 * alpha)}
 	}
 
 	bounds := text.BoundString(assets.FontUi, n.message)
