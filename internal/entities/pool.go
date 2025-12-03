@@ -69,3 +69,25 @@ func (p *PowerUpPool) Get() *PowerUp {
 func (p *PowerUpPool) Put(pu *PowerUp) {
 	p.pool.Put(pu)
 }
+
+type BossProjectilePool struct {
+	pool sync.Pool
+}
+
+func NewBossProjectilePool() *BossProjectilePool {
+	return &BossProjectilePool{
+		pool: sync.Pool{
+			New: func() interface{} {
+				return &BossProjectile{}
+			},
+		},
+	}
+}
+
+func (p *BossProjectilePool) Get() *BossProjectile {
+	return p.pool.Get().(*BossProjectile)
+}
+
+func (p *BossProjectilePool) Put(bp *BossProjectile) {
+	p.pool.Put(bp)
+}

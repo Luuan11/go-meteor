@@ -1,13 +1,14 @@
 let cachedLeaderboard = [];
 let lastFetchTime = 0;
-const CACHE_DURATION = 30000;
 let gameSessionToken = null;
 let lastScoreSaveTime = 0;
-const MIN_SCORE_INTERVAL = 5000;
 
+const CACHE_DURATION = 30000;
+const MIN_SCORE_INTERVAL = 5000;
 const API_URL = 'https://go-meteor.vercel.app/api/leaderboard';
 const RECAPTCHA_SITE_KEY = '6LdWFgwsAAAAAAMzR76ilX1OUF56FtKjU2yOlvcG';
 const FRONTEND_VERSION = '0.2.0';
+const RECAPTCHA_TIMEOUT = 5000;
 
 
 async function loadLeaderboard() {
@@ -17,34 +18,50 @@ async function loadLeaderboard() {
     return cachedLeaderboard;
   }
   
-  try {
-    const response = await fetch(API_URL, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json'
+  const maxRetries = 3;
+  let lastError = null;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const response = await fetch(API_URL, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      
+      const data = await response.json();
+      
+      if (data.leaderboard) {
+        cachedLeaderboard = data.leaderboard;
+        lastFetchTime = now;
+        return cachedLeaderboard;
+      }
+      return [];
+    } catch (error) {
+      lastError = error;
+      if (attempt < maxRetries - 1) {
+        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+      }
     }
-    
-    const data = await response.json();
-    
-    if (data.leaderboard) {
-      cachedLeaderboard = data.leaderboard;
-      lastFetchTime = now;
-      return cachedLeaderboard;
-    }
-    return [];
-  } catch (error) {
-    console.error('Error loading leaderboard:', error);
+  }
+  
+  if (cachedLeaderboard.length > 0) {
     return cachedLeaderboard;
   }
+  return [];
 }
 
 async function saveScore(playerName, score, signature, timestamp) {
-  const trimmedName = playerName ? playerName.trim() : '';
+  if (!playerName || !signature || !timestamp || !gameSessionToken) {
+    return false;
+  }
+  
+  const trimmedName = playerName.trim();
   
   if (!trimmedName || trimmedName.length < 2 || trimmedName.length > 15) {
     return false;
@@ -66,11 +83,29 @@ async function saveScore(playerName, score, signature, timestamp) {
   if (typeof grecaptcha !== 'undefined' && grecaptcha && grecaptcha.ready) {
     try {
       recaptchaToken = await new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('reCAPTCHA timeout')), 5000);
+        let timeoutId = null;
+        const cleanup = () => {
+          if (timeoutId !== null) {
+            clearTimeout(timeoutId);
+            timeoutId = null;
+          }
+        };
+        
+        timeoutId = setTimeout(() => {
+          cleanup();
+          reject(new Error('reCAPTCHA timeout'));
+        }, RECAPTCHA_TIMEOUT);
+        
         grecaptcha.ready(() => {
           grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'submit_score' })
-            .then(token => { clearTimeout(timeout); resolve(token); })
-            .catch(err => { clearTimeout(timeout); reject(err); });
+            .then(token => { 
+              cleanup();
+              resolve(token); 
+            })
+            .catch(err => { 
+              cleanup();
+              reject(err); 
+            });
         });
       });
     } catch (error) {
@@ -117,8 +152,8 @@ function updateLeaderboardUI(leaderboard) {
     const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
     const rank = index + 1;
     const rankClass = index < 3 ? `rank-${rank}` : '';
-    const displayName = truncateName(entry.name, 20);
-    const displayScore = Math.min(entry.score, 999999);
+    const displayName = truncateName(entry.name || 'Anonymous', 20);
+    const displayScore = Math.min(Math.max(entry.score || 0, 0), 999999);
     
     return `
       <div class="leaderboard-entry ${rankClass}">
@@ -166,6 +201,14 @@ window.updateLeaderboard = async function(playerName, score, signature, timestam
     updateLeaderboardUI(leaderboard);
     gameSessionToken = null;
     window.gameSessionToken = null;
+    
+    if (window.notificationManager) {
+      window.notificationManager.success('Score saved successfully!');
+    }
+  } else {
+    if (window.notificationManager) {
+      window.notificationManager.error('Failed to save score. Please try again.');
+    }
   }
   return success;
 };
@@ -190,15 +233,18 @@ window.isTopScore = async function(score) {
     const lowestScore = leaderboard[leaderboard.length - 1].score;
     return score > lowestScore;
   } catch (error) {
-    console.error('[Leaderboard] Error checking score:', error);
     return true;
   }
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
+  if (typeof window.initGameSession === 'function') {
+    window.initGameSession();
+  }
+  
   const leaderboard = await loadLeaderboard();
   updateLeaderboardUI(leaderboard);
-  // Auto-refresh every 30 seconds
+  
   setInterval(async () => {
     lastFetchTime = 0;
     const leaderboard = await loadLeaderboard();

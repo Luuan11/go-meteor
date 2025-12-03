@@ -2,14 +2,12 @@ package entities
 
 import (
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/inpututil"
 
 	"go-meteor/internal/config"
 	"go-meteor/internal/systems"
 	assets "go-meteor/src/pkg"
 )
 
-// GameInterface defines the methods that Player needs from Game
 type GameInterface interface {
 	AddLaser(laser *Laser)
 	GetSuperPowerActive() bool
@@ -138,7 +136,7 @@ func (p *Player) Update() {
 	if ebiten.IsKeyPressed(ebiten.KeyDown) {
 		p.MoveDown()
 	}
-	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
+	if ebiten.IsKeyPressed(ebiten.KeySpace) {
 		p.Shoot()
 	}
 

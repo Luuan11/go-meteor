@@ -3,39 +3,69 @@ package entities
 import (
 	"go-meteor/internal/config"
 	"go-meteor/internal/systems"
-	assets "go-meteor/src/pkg"
+	"image/color"
 	"math/rand"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
+var starColor = color.RGBA{255, 255, 100, 255}
+
+var starSprites [3]*ebiten.Image
+var starSpritesInitialized = false
+
 type Star struct {
-	position      systems.Vector
-	rotation      float64
-	movement      systems.Vector
-	rotationSpeed float64
-	sprite        *ebiten.Image
+	position   systems.Vector
+	movement   systems.Vector
+	size       float32
+	spriteType int
+}
+
+func initStarSprites() {
+	if starSpritesInitialized {
+		return
+	}
+
+	sizes := []float32{1.0, 1.75, 2.5}
+	for i, size := range sizes {
+		radius := int(size) + 2
+		img := ebiten.NewImage(radius*2, radius*2)
+		vector.DrawFilledCircle(img, float32(radius), float32(radius), size, starColor, false)
+		starSprites[i] = img
+	}
+	starSpritesInitialized = true
 }
 
 func NewStar() *Star {
+	initStarSprites()
+
 	pos := systems.Vector{
 		X: rand.Float64() * config.ScreenWidth,
-		Y: -100,
+		Y: -10,
 	}
 
-	velocity := float64(6)
+	velocity := 2.0 + rand.Float64()*2.0
 
 	movement := systems.Vector{
 		X: 0,
 		Y: velocity,
 	}
 
-	sprite := assets.StarsSprites[rand.Intn(len(assets.StarsSprites))]
+	size := 1.0 + rand.Float32()*1.5
+
+	spriteType := 0
+	if size > 2.0 {
+		spriteType = 2
+	} else if size > 1.5 {
+		spriteType = 1
+	}
 
 	m := &Star{
-		position: pos,
-		movement: movement,
-		sprite:   sprite,
+		position:   pos,
+		movement:   movement,
+		size:       size,
+		spriteType: spriteType,
 	}
 	return m
 }
@@ -47,11 +77,15 @@ func (m *Star) IsOutOfScreen() bool {
 func (m *Star) Update() {
 	m.position.X += m.movement.X
 	m.position.Y += m.movement.Y
-	m.rotation += m.rotationSpeed
 }
 
 func (m *Star) Draw(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(m.position.X, m.position.Y)
-	screen.DrawImage(m.sprite, op)
+	sprite := starSprites[m.spriteType]
+	bounds := sprite.Bounds()
+	op.GeoM.Translate(
+		m.position.X-float64(bounds.Dx())/2,
+		m.position.Y-float64(bounds.Dy())/2,
+	)
+	screen.DrawImage(sprite, op)
 }

@@ -95,7 +95,9 @@ func (g *Game) showModalInternal() {
 		return
 	}
 
-	callback := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	var callback js.Func
+	callback = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		defer callback.Release()
 		defer func() {
 			if r := recover(); r != nil {
 				js.Global().Get("console").Call("error", "[Modal] Panic:", r)

@@ -7,5 +7,14 @@ const (
 	StatePlaying
 	StatePaused
 	StateGameOver
-	StateWaitingNameInput // Aguardando input de nome no modal
+	StateBossFight
+	StateWaitingNameInput
+)
+
+type BossType int
+
+const (
+	BossTank BossType = iota
+	BossSniper
+	BossSwarm
 )

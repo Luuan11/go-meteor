@@ -15,6 +15,7 @@ const (
 	PowerUpSuperShot PowerUpType = iota
 	PowerUpHeart
 	PowerUpShield
+	PowerUpSlowMotion
 )
 
 type PowerUp struct {
@@ -35,7 +36,7 @@ func NewPowerUp() *PowerUp {
 		Y: config.PowerUpSpeed,
 	}
 
-	powerType := PowerUpType(rand.Intn(3))
+	powerType := PowerUpType(rand.Intn(4))
 	var sprite *ebiten.Image
 
 	switch powerType {
@@ -43,6 +44,8 @@ func NewPowerUp() *PowerUp {
 		sprite = assets.HeartPowerUpSprite
 	case PowerUpShield:
 		sprite = assets.ShieldPowerUpSprite
+	case PowerUpSlowMotion:
+		sprite = assets.ClockPowerUpSprite
 	default:
 		sprite = assets.PowerUpSprites
 	}
@@ -66,13 +69,15 @@ func (p *PowerUp) Reset() {
 		Y: config.PowerUpSpeed,
 	}
 
-	p.powerType = PowerUpType(rand.Intn(3))
+	p.powerType = PowerUpType(rand.Intn(4))
 
 	switch p.powerType {
 	case PowerUpHeart:
 		p.sprite = assets.HeartPowerUpSprite
 	case PowerUpShield:
 		p.sprite = assets.ShieldPowerUpSprite
+	case PowerUpSlowMotion:
+		p.sprite = assets.ClockPowerUpSprite
 	default:
 		p.sprite = assets.PowerUpSprites
 	}

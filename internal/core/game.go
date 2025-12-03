@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"image/color"
+	"time"
 
 	"go-meteor/internal/config"
 	"go-meteor/internal/effects"
@@ -18,11 +19,16 @@ import (
 	"golang.org/x/image/font"
 )
 
+var emptyImage = ebiten.NewImage(1, 1)
+
+func init() {
+	emptyImage.Fill(color.White)
+}
+
 type Game struct {
 	state config.GameState
 
-	meteorSpawnTimer  *systems.Timer
-	planetSpawnTimer  *systems.Timer
+	meteoSpawnTimer   *systems.Timer
 	starSpawnTimer    *systems.Timer
 	powerUpSpawnTimer *systems.Timer
 	superPowerTimer   *systems.Timer
@@ -34,15 +40,26 @@ type Game struct {
 	player           *entities.Player
 	meteors          []*entities.Meteor
 	stars            []*entities.Star
-	planets          []*entities.Planet
 	lasers           []*entities.Laser
 	powerUps         []*entities.PowerUp
 	particles        []*effects.Particle
 	superPowerActive bool
+	slowMotionActive bool
+	slowMotionTimer  *systems.Timer
 
-	meteorPool  *entities.MeteorPool
-	laserPool   *entities.LaserPool
-	powerUpPool *entities.PowerUpPool
+	boss              *entities.Boss
+	bossProjectiles   []*entities.BossProjectile
+	bossBar           *ui.BossBar
+	bossWarningShown  bool
+	bossCooldownTimer *systems.Timer
+	bossDefeated      bool
+	bossCount         int
+	bossNoDamage      bool
+
+	meteorPool         *entities.MeteorPool
+	laserPool          *entities.LaserPool
+	powerUpPool        *entities.PowerUpPool
+	bossProjectilePool *entities.BossProjectilePool
 
 	score int
 	combo int
@@ -61,37 +78,47 @@ type Game struct {
 	leaderboard *systems.Leaderboard
 	storage     systems.Storage
 	highScore   int
+	lastScore   int
 }
 
 func NewGame() *Game {
 	g := &Game{
-		state:             config.StateMenu,
-		meteorSpawnTimer:  systems.NewTimer(config.MeteorSpawnTime),
-		starSpawnTimer:    systems.NewTimer(config.StarSpawnTime),
-		planetSpawnTimer:  systems.NewTimer(config.PlanetSpawnTime),
-		powerUpSpawnTimer: systems.NewTimer(config.PowerUpSpawnTime),
-		superPowerTimer:   systems.NewTimer(config.SuperPowerTime),
-		comboTimer:        systems.NewTimer(config.ComboTimeout),
-		superPowerActive:  false,
-		meteorPool:        entities.NewMeteorPool(),
-		laserPool:         entities.NewLaserPool(),
-		powerUpPool:       entities.NewPowerUpPool(),
-		notification:      ui.NewNotification(),
-		wave:              1,
-		isMobile:          false,
-		touchDetected:     false,
-		leaderboard:       systems.NewLeaderboard(),
-		storage:           systems.NewStorage(),
+		state:              config.StateMenu,
+		meteoSpawnTimer:    systems.NewTimer(config.MeteorSpawnTime),
+		starSpawnTimer:     systems.NewTimer(config.StarSpawnTime),
+		powerUpSpawnTimer:  systems.NewTimer(config.PowerUpSpawnTime),
+		superPowerTimer:    systems.NewTimer(config.SuperPowerTime),
+		comboTimer:         systems.NewTimer(config.ComboTimeout),
+		bossCooldownTimer:  systems.NewTimer(config.BossCooldownTime),
+		superPowerActive:   false,
+		slowMotionActive:   false,
+		slowMotionTimer:    systems.NewTimer(config.SlowMotionTime),
+		meteorPool:         entities.NewMeteorPool(),
+		laserPool:          entities.NewLaserPool(),
+		powerUpPool:        entities.NewPowerUpPool(),
+		bossProjectilePool: entities.NewBossProjectilePool(),
+		notification:       ui.NewNotification(),
+		wave:               1,
+		isMobile:           false,
+		touchDetected:      false,
+		leaderboard:        systems.NewLeaderboard(),
+		storage:            systems.NewStorage(),
+		meteors:            make([]*entities.Meteor, 0, 50),
+		stars:              make([]*entities.Star, 0, 50),
+		lasers:             make([]*entities.Laser, 0, 100),
+		powerUps:           make([]*entities.PowerUp, 0, 10),
+		particles:          make([]*effects.Particle, 0, 100),
+		bossProjectiles:    make([]*entities.BossProjectile, 0, 20),
+		bossBar:            ui.NewBossBar(),
+		bossWarningShown:   false,
+		pauseIconX:         config.ScreenWidth - (config.PauseIconSize + config.PauseIconMargin),
+		pauseIconY:         config.PauseIconMargin,
 	}
-
-	g.joystick = input.NewJoystick(100, float64(config.ScreenHeight-120), 60)
-	g.shootButton = input.NewShootButton(float64(config.ScreenWidth-100), float64(config.ScreenHeight-120), 50)
-	g.pauseIconX = config.ScreenWidth - 45
-	g.pauseIconY = 15
 
 	g.player = entities.NewPlayer(g)
 	g.menu = ui.NewMenu()
 	g.pauseMenu = ui.NewPauseMenu()
+	g.initMobileControls()
 
 	g.loadHighScore()
 	g.loadLeaderboard()
@@ -100,79 +127,89 @@ func NewGame() *Game {
 }
 
 func (g *Game) Update() error {
-	if assets.ShouldRestartMusic() {
-		assets.RestartMusic()
-	}
-
 	g.updateStars()
 
+	stateStart := time.Now()
+	var err error
 	switch g.state {
 	case config.StateMenu:
-		return g.updateMenu()
+		err = g.updateMenu()
 	case config.StatePlaying:
-		return g.updatePlaying()
+		err = g.updatePlaying()
+	case config.StateBossFight:
+		err = g.updateBossFight()
 	case config.StatePaused:
-		return g.updatePaused()
+		err = g.updatePaused()
 	case config.StateGameOver:
-		return g.updateGameOver()
+		err = g.updateGameOver()
 	case config.StateWaitingNameInput:
 		return nil
 	}
 
-	return nil
+	if time.Since(stateStart) > 10*time.Millisecond {
+		fmt.Printf("⚠️ STATE UPDATE SLOW (%v): %v\n", g.state, time.Since(stateStart))
+	}
+
+	return err
+}
+
+func (g *Game) initMobileControls() {
+	if g.joystick == nil {
+		g.joystick = input.NewJoystick(100, float64(config.ScreenHeight-120), 60)
+	}
+	if g.shootButton == nil {
+		g.shootButton = input.NewShootButton(float64(config.ScreenWidth-100), float64(config.ScreenHeight-120), 50)
+	}
 }
 
 func (g *Game) updateMenu() error {
+	g.menu.SetScores(g.highScore, g.lastScore)
+
 	var touchIDs []ebiten.TouchID
 	touchIDs = ebiten.AppendTouchIDs(touchIDs)
 
 	if len(touchIDs) > 0 && !g.touchDetected {
 		g.touchDetected = true
 		g.isMobile = true
+		g.initMobileControls()
 	}
 
 	g.menu.Update()
 
 	if g.menu.IsReady() {
-		g.planets = nil
 		g.initNewGameSession()
 		g.state = config.StatePlaying
 	}
 
-	g.updateAndSpawn(g.planetSpawnTimer, func() {
-		g.planets = append(g.planets, entities.NewPlanet())
-	})
-
-	for _, m := range g.planets {
-		m.Update()
-	}
-
-	g.cleanPlanets()
 	return nil
 }
 
 func (g *Game) updatePlaying() error {
 	if g.shouldPause() {
-		assets.PauseMusic()
 		g.state = config.StatePaused
 		return nil
 	}
 
-	touchIDs := ebiten.AppendTouchIDs(nil)
+	if g.shouldSpawnBoss() {
+		g.spawnBoss()
+		return nil
+	}
 
+	touchIDs := ebiten.AppendTouchIDs(nil)
 	if len(touchIDs) > 0 && !g.touchDetected {
 		g.touchDetected = true
 		g.isMobile = true
+		g.initMobileControls()
 	}
-
 	g.handleMobileControls(touchIDs)
+
 	g.player.Update()
 	g.notification.Update()
 
-	speedMultiplier := 1.0 + float64(g.wave-1)*0.15
-	meteorsPerWave := max(1, 1+(g.wave-1)/5)
+	speedMultiplier := 1.0 + float64(g.wave-1)*config.WaveDifficultyFactor
+	meteorsPerWave := max(config.MeteorsPerWaveOffset, config.MeteorsPerWaveOffset+(g.wave-1)/config.WaveMeteoIncrement)
 
-	g.updateAndSpawn(g.meteorSpawnTimer, func() {
+	g.updateAndSpawn(g.meteoSpawnTimer, func() {
 		for i := 0; i < meteorsPerWave; i++ {
 			m := g.meteorPool.Get()
 			m.Reset(speedMultiplier)
@@ -186,42 +223,41 @@ func (g *Game) updatePlaying() error {
 		g.powerUps = append(g.powerUps, p)
 	})
 
-	if g.superPowerActive {
-		g.superPowerTimer.Update()
-		if g.superPowerTimer.IsReady() {
-			g.superPowerTimer.Reset()
-			g.superPowerActive = false
-		}
-	}
-
-	g.comboTimer.Update()
-	if g.comboTimer.IsReady() && g.combo > 0 {
-		g.combo = 0
-	}
+	g.updateGameTimers()
 
 	for _, p := range g.powerUps {
 		p.Update()
 	}
 
-	for _, m := range g.meteors {
-		m.Update()
-	}
+	g.updateMeteors()
 
-	for _, b := range g.lasers {
-		b.Update()
+	for _, l := range g.lasers {
+		l.Update()
 	}
 
 	for _, p := range g.particles {
 		p.Update()
 	}
 
+	if g.boss != nil {
+		g.boss.Update()
+		for _, bp := range g.bossProjectiles {
+			bp.Update()
+		}
+		for _, m := range g.boss.GetMinions() {
+			if m != nil {
+				m.Update()
+			}
+		}
+	}
+
 	playerDied := g.checkCollisions()
+
 	if playerDied {
 		return nil
 	}
 
 	g.player.UpdateTimers()
-
 	g.cleanObjects()
 
 	g.screenShake = max(0, g.screenShake-1)
@@ -234,18 +270,15 @@ func (g *Game) updatePaused() error {
 
 	switch action {
 	case ui.PauseActionContinue:
-		assets.ResumeMusic()
 		g.state = config.StatePlaying
 	case ui.PauseActionRestart:
 		g.Reset()
-		assets.ResumeMusic()
 		g.state = config.StatePlaying
 	case ui.PauseActionQuit:
 		g.returnToMenu()
 	}
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) || inpututil.IsKeyJustPressed(ebiten.KeyP) {
-		assets.ResumeMusic()
 		g.state = config.StatePlaying
 	}
 
@@ -273,45 +306,46 @@ func (g *Game) updateStars() {
 		g.stars = append(g.stars, entities.NewStar())
 	})
 
-	for _, m := range g.stars {
-		m.Update()
+	for _, s := range g.stars {
+		s.Update()
 	}
 
 	g.cleanStars()
 }
 
 func (g *Game) checkCollisions() bool {
-	for i := len(g.meteors) - 1; i >= 0; i-- {
-		for j := len(g.lasers) - 1; j >= 0; j-- {
+	meteorsToRemove := make(map[int]bool)
+	lasersToRemove := make(map[int]bool)
+
+	for i := range g.meteors {
+		if meteorsToRemove[i] {
+			continue
+		}
+		for j := range g.lasers {
+			if lasersToRemove[j] {
+				continue
+			}
 			if g.meteors[i].Collider().Intersects(g.lasers[j].Collider()) {
-				pos := g.meteors[i].GetPosition()
+				g.createExplosion(g.meteors[i].GetPosition(), config.ParticleCount)
 
-				for k := 0; k < config.ParticleCount; k++ {
-					g.particles = append(g.particles, effects.NewParticle(pos))
-				}
-
-				g.meteorPool.Put(g.meteors[i])
-				g.meteors = append(g.meteors[:i], g.meteors[i+1:]...)
-
-				g.laserPool.Put(g.lasers[j])
-				g.lasers = append(g.lasers[:j], g.lasers[j+1:]...)
+				meteorsToRemove[i] = true
+				lasersToRemove[j] = true
 
 				g.combo++
 				g.comboTimer.Reset()
-				points := 1 + int(float64(g.combo)*config.ComboMultiplier)
-				g.score += points
+				g.addScore(1)
 
 				assets.PlayExplosionSound()
-
-				if g.score >= g.wave*config.WaveScoreThreshold {
-					g.wave++
-				}
 
 				break
 			}
 		}
 	}
 
+	g.filterMeteors(meteorsToRemove)
+	g.filterLasers(lasersToRemove)
+
+	// Colisões meteoro-player (reverse iteration para remoção segura)
 	for i := len(g.meteors) - 1; i >= 0; i-- {
 		if g.meteors[i].Collider().Intersects(g.player.Collider()) {
 			isDead := g.player.TakeDamage()
@@ -320,39 +354,21 @@ func (g *Game) checkCollisions() bool {
 			g.meteors = append(g.meteors[:i], g.meteors[i+1:]...)
 
 			if isDead {
-				g.saveHighScore()
-				if g.leaderboard.IsTopScore(g.score) && g.hasNameInputModal() {
-					g.state = config.StateWaitingNameInput
-					g.showNameInputModal()
-				} else {
-					g.state = config.StateGameOver
-				}
-				return true
+				return g.handleGameOver()
 			}
-			g.screenShake = config.ScreenShakeDuration
+			g.addScreenShake(config.ScreenShakeDuration)
 			break
 		}
 	}
 
-	for i, p := range g.powerUps {
-		if p.Collider().Intersects(g.player.Collider()) {
-			powerType := p.GetType()
+	// Colisões power-up (reverse iteration para remoção segura)
+	for i := len(g.powerUps) - 1; i >= 0; i-- {
+		if g.powerUps[i].Collider().Intersects(g.player.Collider()) {
+			powerType := g.powerUps[i].GetType()
 			g.powerUpPool.Put(g.powerUps[i])
 			g.powerUps = append(g.powerUps[:i], g.powerUps[i+1:]...)
 
-			switch powerType {
-			case entities.PowerUpSuperShot:
-				g.superPowerActive = true
-				g.superPowerTimer.Reset()
-				g.notification.Show("SUPER POWER!", ui.NotificationSuperPower)
-			case entities.PowerUpHeart:
-				g.player.Heal()
-				g.notification.Show("+1 LIFE", ui.NotificationLife)
-			case entities.PowerUpShield:
-				g.player.ActivateShield()
-				g.notification.Show("SHIELD ACTIVE", ui.NotificationShield)
-			}
-
+			g.handlePowerUpCollected(powerType)
 			assets.PlayPowerUpSound()
 			break
 		}
@@ -362,48 +378,53 @@ func (g *Game) checkCollisions() bool {
 }
 
 func (g *Game) cleanObjects() {
-	for i := len(g.meteors) - 1; i >= 0; i-- {
-		if g.meteors[i].IsOutOfScreen() {
-			g.meteorPool.Put(g.meteors[i])
-			g.meteors = append(g.meteors[:i], g.meteors[i+1:]...)
+	validMeteors := make([]*entities.Meteor, 0, len(g.meteors))
+	for _, m := range g.meteors {
+		if m.IsOutOfScreen() {
+			g.meteorPool.Put(m)
+		} else {
+			validMeteors = append(validMeteors, m)
 		}
 	}
+	g.meteors = validMeteors
 
-	for i := len(g.lasers) - 1; i >= 0; i-- {
-		if g.lasers[i].IsOutOfScreen() {
-			g.laserPool.Put(g.lasers[i])
-			g.lasers = append(g.lasers[:i], g.lasers[i+1:]...)
+	validLasers := make([]*entities.Laser, 0, len(g.lasers))
+	for _, l := range g.lasers {
+		if l.IsOutOfScreen() {
+			g.laserPool.Put(l)
+		} else {
+			validLasers = append(validLasers, l)
 		}
 	}
+	g.lasers = validLasers
 
-	for i := len(g.powerUps) - 1; i >= 0; i-- {
-		if g.powerUps[i].IsOutOfScreen() {
-			g.powerUpPool.Put(g.powerUps[i])
-			g.powerUps = append(g.powerUps[:i], g.powerUps[i+1:]...)
+	validPowerUps := make([]*entities.PowerUp, 0, len(g.powerUps))
+	for _, p := range g.powerUps {
+		if p.IsOutOfScreen() {
+			g.powerUpPool.Put(p)
+		} else {
+			validPowerUps = append(validPowerUps, p)
 		}
 	}
+	g.powerUps = validPowerUps
 
-	for i := len(g.particles) - 1; i >= 0; i-- {
-		if g.particles[i].IsDead() {
-			g.particles = append(g.particles[:i], g.particles[i+1:]...)
+	validParticles := make([]*effects.Particle, 0, len(g.particles))
+	for _, p := range g.particles {
+		if !p.IsDead() {
+			validParticles = append(validParticles, p)
 		}
 	}
+	g.particles = validParticles
 }
 
 func (g *Game) cleanStars() {
-	for i := len(g.stars) - 1; i >= 0; i-- {
-		if g.stars[i].IsOutOfScreen() {
-			g.stars = append(g.stars[:i], g.stars[i+1:]...)
+	validStars := make([]*entities.Star, 0, len(g.stars))
+	for _, s := range g.stars {
+		if !s.IsOutOfScreen() {
+			validStars = append(validStars, s)
 		}
 	}
-}
-
-func (g *Game) cleanPlanets() {
-	for i := len(g.planets) - 1; i >= 0; i-- {
-		if g.planets[i].IsOutOfScreen() {
-			g.planets = append(g.planets[:i], g.planets[i+1:]...)
-		}
-	}
+	g.stars = validStars
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
@@ -418,8 +439,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(offsetX, offsetY)
 
-	for _, b := range g.stars {
-		b.Draw(screen)
+	for _, s := range g.stars {
+		s.Draw(screen)
 	}
 
 	switch g.state {
@@ -427,6 +448,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		g.drawMenu(screen)
 	case config.StatePlaying:
 		g.drawPlaying(screen)
+	case config.StateBossFight:
+		g.drawBossFight(screen)
 	case config.StatePaused:
 		g.drawPlaying(screen)
 		g.pauseMenu.Draw(screen)
@@ -438,10 +461,6 @@ func (g *Game) Draw(screen *ebiten.Image) {
 }
 
 func (g *Game) drawMenu(screen *ebiten.Image) {
-	for _, b := range g.planets {
-		b.Draw(screen)
-	}
-
 	g.menu.Draw(screen)
 }
 
@@ -460,9 +479,7 @@ func (g *Game) drawPlaying(screen *ebiten.Image) {
 		p.Draw(screen)
 	}
 
-	for _, p := range g.particles {
-		p.Draw(screen)
-	}
+	g.drawParticlesBatch(screen)
 
 	g.drawUI(screen)
 	g.notification.Draw(screen)
@@ -504,12 +521,48 @@ func (g *Game) drawUI(screen *ebiten.Image) {
 	if g.player.HasShield() {
 		progress := float32(g.player.ShieldProgress())
 		ui.DrawPowerUpBarAt(screen, progress, color.RGBA{100, 200, 255, 255}, barY)
+		barY += 30
 	}
 
-	if g.isMobile {
+	if g.slowMotionActive {
+		progress := float32(g.slowMotionTimer.Progress())
+		ui.DrawPowerUpBarAt(screen, progress, color.RGBA{100, 255, 255, 255}, barY)
+	}
+
+	if g.isMobile && g.joystick != nil && g.shootButton != nil {
 		g.joystick.Draw(screen)
 		g.shootButton.Draw(screen)
 	}
+}
+
+func (g *Game) drawBossFight(screen *ebiten.Image) {
+	g.player.Draw(screen)
+
+	if g.boss != nil {
+		g.boss.Draw(screen)
+	}
+
+	for _, bp := range g.bossProjectiles {
+		bp.Draw(screen)
+	}
+
+	for _, b := range g.lasers {
+		b.Draw(screen)
+	}
+
+	for _, pu := range g.powerUps {
+		pu.Draw(screen)
+	}
+
+	g.drawParticlesBatch(screen)
+
+	g.drawUI(screen)
+
+	if g.boss != nil {
+		g.bossBar.Draw(screen, g.boss.GetHealth(), g.boss.GetMaxHealth())
+	}
+
+	g.notification.Draw(screen)
 }
 
 func (g *Game) drawGameOver(screen *ebiten.Image) {
@@ -574,7 +627,7 @@ func (g *Game) isPauseIconClicked(x, y int) bool {
 }
 
 func (g *Game) handleMobileControls(touchIDs []ebiten.TouchID) {
-	if !g.isMobile {
+	if !g.isMobile || g.joystick == nil || g.shootButton == nil {
 		return
 	}
 
@@ -613,14 +666,19 @@ func (g *Game) clearPools() {
 	for _, p := range g.powerUps {
 		g.powerUpPool.Put(p)
 	}
+	for _, bp := range g.bossProjectiles {
+		g.bossProjectilePool.Put(bp)
+	}
 }
 
 func (g *Game) returnToMenu() {
 	g.clearPools()
-	g.meteors = nil
-	g.lasers = nil
-	g.powerUps = nil
-	g.particles = nil
+	g.lastScore = g.score
+	g.meteors = g.meteors[:0]
+	g.lasers = g.lasers[:0]
+	g.powerUps = g.powerUps[:0]
+	g.particles = g.particles[:0]
+	g.bossProjectiles = g.bossProjectiles[:0]
 	g.player = entities.NewPlayer(g)
 	g.Reset()
 	g.menu.Reset()
@@ -631,11 +689,12 @@ func (g *Game) Reset() {
 	g.clearPools()
 
 	g.player = entities.NewPlayer(g)
-	g.meteors = nil
-	g.lasers = nil
-	g.powerUps = nil
-	g.particles = nil
-	g.meteorSpawnTimer.Reset()
+	g.meteors = g.meteors[:0]
+	g.lasers = g.lasers[:0]
+	g.powerUps = g.powerUps[:0]
+	g.particles = g.particles[:0]
+	g.bossProjectiles = g.bossProjectiles[:0]
+	g.meteoSpawnTimer.Reset()
 	g.starSpawnTimer.Reset()
 	g.powerUpSpawnTimer.Reset()
 	g.comboTimer.Reset()
@@ -646,6 +705,7 @@ func (g *Game) Reset() {
 	g.combo = 0
 	g.wave = 1
 	g.superPowerActive = false
+	g.slowMotionActive = false
 	g.screenShake = 0
 	g.initNewGameSession()
 }
@@ -661,6 +721,136 @@ func (g *Game) GetSuperPowerActive() bool {
 func (g *Game) ResetCombo() {
 	g.combo = 0
 	g.comboTimer.Reset()
+}
+
+// updateGameTimers atualiza todos os timers do jogo
+func (g *Game) updateGameTimers() {
+	if g.superPowerActive {
+		g.superPowerTimer.Update()
+		if g.superPowerTimer.IsReady() {
+			g.superPowerTimer.Reset()
+			g.superPowerActive = false
+		}
+	}
+
+	if g.slowMotionActive {
+		g.slowMotionTimer.Update()
+		if g.slowMotionTimer.IsReady() {
+			g.slowMotionTimer.Reset()
+			g.slowMotionActive = false
+		}
+	}
+
+	g.comboTimer.Update()
+	if g.comboTimer.IsReady() && g.combo > 0 {
+		g.combo = 0
+	}
+
+	if g.bossDefeated {
+		g.bossCooldownTimer.Update()
+		if g.bossCooldownTimer.IsReady() {
+			g.bossDefeated = false
+		}
+	}
+}
+
+// updateMeteors atualiza meteoros aplicando slow motion quando ativo
+func (g *Game) updateMeteors() {
+	if g.slowMotionActive {
+		for _, m := range g.meteors {
+			oldY := m.GetMovement().Y
+			m.SetMovementY(oldY * config.SlowMotionFactor)
+			m.Update()
+			m.SetMovementY(oldY)
+		}
+	} else {
+		for _, m := range g.meteors {
+			m.Update()
+		}
+	}
+}
+
+// handlePowerUpCollected processa o efeito do power-up coletado
+func (g *Game) handlePowerUpCollected(powerType entities.PowerUpType) {
+	switch powerType {
+	case entities.PowerUpSuperShot:
+		g.superPowerActive = true
+		g.superPowerTimer.Reset()
+		g.notification.Show("SUPER POWER!", ui.NotificationSuperPower)
+	case entities.PowerUpHeart:
+		g.player.Heal()
+		g.notification.Show("+1 LIFE", ui.NotificationLife)
+	case entities.PowerUpShield:
+		g.player.ActivateShield()
+		g.notification.Show("SHIELD ACTIVE", ui.NotificationShield)
+	case entities.PowerUpSlowMotion:
+		g.slowMotionActive = true
+		g.slowMotionTimer.Reset()
+		g.notification.Show("SLOW MOTION!", ui.NotificationSuperPower)
+	}
+}
+
+// createExplosion gera partículas na posição especificada
+func (g *Game) createExplosion(pos systems.Vector, count int) {
+	for i := 0; i < count; i++ {
+		g.particles = append(g.particles, effects.NewParticle(pos))
+	}
+}
+
+// addScreenShake adiciona efeito de shake na tela
+func (g *Game) addScreenShake(intensity int) {
+	g.screenShake = intensity
+}
+
+// handleGameOver processa o fim do jogo e verifica leaderboard
+func (g *Game) handleGameOver() bool {
+	g.saveHighScore()
+	if g.leaderboard.IsTopScore(g.score) && g.hasNameInputModal() {
+		g.state = config.StateWaitingNameInput
+		g.showNameInputModal()
+	} else {
+		g.state = config.StateGameOver
+	}
+	return true
+}
+
+// filterMeteors remove meteoros marcados e retorna à pool
+func (g *Game) filterMeteors(toRemove map[int]bool) {
+	newMeteors := make([]*entities.Meteor, 0, len(g.meteors))
+	for i, m := range g.meteors {
+		if toRemove[i] {
+			g.meteorPool.Put(m)
+		} else {
+			newMeteors = append(newMeteors, m)
+		}
+	}
+	g.meteors = newMeteors
+}
+
+// filterLasers remove lasers marcados e retorna à pool
+func (g *Game) filterLasers(toRemove map[int]bool) {
+	newLasers := make([]*entities.Laser, 0, len(g.lasers))
+	for i, l := range g.lasers {
+		if toRemove[i] {
+			g.laserPool.Put(l)
+		} else {
+			newLasers = append(newLasers, l)
+		}
+	}
+	g.lasers = newLasers
+}
+
+// addScore adiciona pontos com combo e avança waves
+func (g *Game) addScore(basePoints int) {
+	points := basePoints + int(float64(g.combo)*config.ComboMultiplier)
+	if points < 1 {
+		points = 1
+	}
+	g.score += points
+
+	if g.score >= g.wave*config.WaveScoreThreshold {
+		g.wave++
+	}
 }
 
 func (g *Game) loadHighScore() {
@@ -688,4 +878,285 @@ func drawText(screen *ebiten.Image, txt string, face font.Face, x, y int, clr co
 func measureText(txt string, face font.Face) int {
 	bounds := text.BoundString(face, txt)
 	return bounds.Dx()
+}
+
+func (g *Game) shouldSpawnBoss() bool {
+	if g.boss != nil || g.bossDefeated {
+		return false
+	}
+
+	return (g.wave > 0 && g.wave%config.BossWaveInterval == 0 && !g.bossWarningShown) ||
+		(g.score >= config.BossScoreThreshold && g.score < config.BossScoreThreshold+config.BossScoreProximity && !g.bossWarningShown)
+}
+
+func (g *Game) spawnBoss() {
+	g.bossWarningShown = true
+	g.screenShake = config.BossWarningShakeTime
+	g.notification.Show("BOSS APPROACHING!", ui.NotificationWarning)
+	assets.PlayExplosionSound()
+
+	bossType := config.BossType(g.bossCount % config.BossTypesCount)
+	g.boss = entities.NewBoss(bossType)
+	g.bossNoDamage = true
+	g.bossBar.Show()
+	g.state = config.StateBossFight
+	g.powerUpSpawnTimer = systems.NewTimer(config.PowerUpSpawnTimeBoss)
+}
+
+func (g *Game) updateBossFight() error {
+	if g.shouldPause() {
+		g.state = config.StatePaused
+		return nil
+	}
+
+	touchIDs := ebiten.AppendTouchIDs(nil)
+	g.handleMobileControls(touchIDs)
+
+	g.player.Update()
+	g.notification.Update()
+
+	g.updateGameTimers()
+
+	if g.boss != nil {
+		playerPos := g.player.Collider()
+		g.boss.SetPlayerPosition(systems.Vector{X: playerPos.X, Y: playerPos.Y})
+		g.boss.Update()
+
+		if g.boss.CanShoot() && g.boss.GetPosition().Y >= 100 {
+			g.boss.Shoot()
+			pos := g.boss.GetPosition()
+			bp := g.bossProjectilePool.Get()
+			bp.Reset(pos.X, pos.Y+40)
+			g.bossProjectiles = append(g.bossProjectiles, bp)
+			assets.PlayExplosionSound()
+		}
+	}
+
+	g.updateAndSpawn(g.powerUpSpawnTimer, func() {
+		p := g.powerUpPool.Get()
+		p.Reset()
+		g.powerUps = append(g.powerUps, p)
+	})
+
+	for _, pu := range g.powerUps {
+		pu.Update()
+	}
+
+	for _, bp := range g.bossProjectiles {
+		bp.Update()
+	}
+
+	for _, l := range g.lasers {
+		l.Update()
+	}
+
+	for _, p := range g.particles {
+		p.Update()
+	}
+
+	g.checkBossCollisions()
+	g.cleanBossObjects()
+
+	g.player.UpdateTimers()
+	g.screenShake = max(0, g.screenShake-1)
+
+	return nil
+}
+
+func (g *Game) checkBossCollisions() {
+	if g.boss == nil {
+		return
+	}
+
+	for i := len(g.lasers) - 1; i >= 0; i-- {
+		if g.lasers[i].Collider().Intersects(g.boss.Collider()) {
+			isDead := g.boss.TakeDamage(1)
+
+			g.createExplosion(g.boss.GetPosition(), 5)
+
+			g.laserPool.Put(g.lasers[i])
+			g.lasers = append(g.lasers[:i], g.lasers[i+1:]...)
+
+			g.addScreenShake(config.ScreenShakeBossHit)
+			assets.PlayExplosionSound()
+
+			if isDead {
+				g.defeatBoss()
+				return
+			}
+			continue
+		}
+
+		if g.boss.GetBossType() == config.BossSwarm {
+			for mIdx, minion := range g.boss.GetMinions() {
+				if minion != nil && g.lasers[i].Collider().Intersects(minion.Collider()) {
+					isDead := minion.TakeDamage(1)
+
+					g.createExplosion(minion.GetPosition(), config.MinionParticles)
+
+					g.laserPool.Put(g.lasers[i])
+					g.lasers = append(g.lasers[:i], g.lasers[i+1:]...)
+
+					assets.PlayExplosionSound()
+
+					if isDead {
+						g.boss.RemoveMinion(mIdx)
+					}
+					break
+				}
+			}
+		}
+	}
+
+	// Colisões power-up (reverse iteration)
+	for i := len(g.powerUps) - 1; i >= 0; i-- {
+		if g.powerUps[i].Collider().Intersects(g.player.Collider()) {
+			powerType := g.powerUps[i].GetType()
+			g.powerUpPool.Put(g.powerUps[i])
+			g.powerUps = append(g.powerUps[:i], g.powerUps[i+1:]...)
+
+			g.handlePowerUpCollected(powerType)
+			assets.PlayPowerUpSound()
+			break
+		}
+	}
+
+	for i := len(g.bossProjectiles) - 1; i >= 0; i-- {
+		if g.bossProjectiles[i].Collider().Intersects(g.player.Collider()) {
+			isDead := g.player.TakeDamage()
+			g.bossNoDamage = false
+
+			g.bossProjectilePool.Put(g.bossProjectiles[i])
+			g.bossProjectiles = append(g.bossProjectiles[:i], g.bossProjectiles[i+1:]...)
+
+			g.addScreenShake(config.ScreenShakeDuration)
+
+			if isDead {
+				g.handleGameOver()
+				return
+			}
+			break
+		}
+	}
+}
+
+func (g *Game) defeatBoss() {
+	g.createExplosion(g.boss.GetPosition(), config.ParticleCount*config.ExplosionParticlesMul)
+
+	baseReward := config.BossReward
+
+	fightDuration := time.Since(g.boss.GetSpawnTime()).Seconds()
+	if fightDuration < 30 {
+		timeBonus := int((30 - fightDuration) * 2)
+		baseReward += timeBonus
+		g.notification.Show(fmt.Sprintf("+%d TIME BONUS!", timeBonus), ui.NotificationLife)
+	}
+
+	g.score += baseReward
+	g.addScreenShake(config.ScreenShakeBossDefeat)
+	g.notification.Show(fmt.Sprintf("+%d BOSS DEFEATED!", baseReward), ui.NotificationSuperPower)
+	assets.PlayExplosionSound()
+
+	numPowerUps := 1
+	if g.bossNoDamage {
+		numPowerUps = 2
+		g.notification.Show("PERFECT! +EXTRA POWER-UP", ui.NotificationSuperPower)
+	}
+
+	for i := 0; i < numPowerUps; i++ {
+		p := g.powerUpPool.Get()
+		p.Reset()
+		g.powerUps = append(g.powerUps, p)
+	}
+
+	for _, bp := range g.bossProjectiles {
+		g.bossProjectilePool.Put(bp)
+	}
+
+	g.boss = nil
+	g.bossProjectiles = nil
+	g.bossBar.Hide()
+	g.bossWarningShown = false
+	g.bossDefeated = true
+	g.bossCount++
+	g.bossCooldownTimer.Reset()
+	g.powerUpSpawnTimer = systems.NewTimer(config.PowerUpSpawnTime)
+	g.state = config.StatePlaying
+}
+
+func (g *Game) cleanBossObjects() {
+	validBossProjectiles := make([]*entities.BossProjectile, 0, len(g.bossProjectiles))
+	for _, bp := range g.bossProjectiles {
+		if bp.IsOutOfScreen() {
+			g.bossProjectilePool.Put(bp)
+		} else {
+			validBossProjectiles = append(validBossProjectiles, bp)
+		}
+	}
+	g.bossProjectiles = validBossProjectiles
+
+	validPowerUps := make([]*entities.PowerUp, 0, len(g.powerUps))
+	for _, pu := range g.powerUps {
+		if pu.IsOutOfScreen() {
+			g.powerUpPool.Put(pu)
+		} else {
+			validPowerUps = append(validPowerUps, pu)
+		}
+	}
+	g.powerUps = validPowerUps
+
+	validLasers := make([]*entities.Laser, 0, len(g.lasers))
+	for _, l := range g.lasers {
+		if l.IsOutOfScreen() {
+			g.laserPool.Put(l)
+		} else {
+			validLasers = append(validLasers, l)
+		}
+	}
+	g.lasers = validLasers
+
+	validParticles := make([]*effects.Particle, 0, len(g.particles))
+	for _, p := range g.particles {
+		if !p.IsDead() {
+			validParticles = append(validParticles, p)
+		}
+	}
+	g.particles = validParticles
+}
+
+func (g *Game) drawParticlesBatch(screen *ebiten.Image) {
+	if len(g.particles) == 0 {
+		return
+	}
+
+	vertices := make([]ebiten.Vertex, 0, len(g.particles)*4)
+	indices := make([]uint16, 0, len(g.particles)*6)
+
+	for _, p := range g.particles {
+		x := float32(p.GetPosition().X)
+		y := float32(p.GetPosition().Y)
+		size := float32(2.0) // tamanho fixo de particle
+		col := p.GetColor()
+
+		r := float32(col.R) / 255.0
+		gVal := float32(col.G) / 255.0
+		b := float32(col.B) / 255.0
+		a := float32(col.A) / 255.0
+
+		baseIdx := uint16(len(vertices))
+
+		vertices = append(vertices,
+			ebiten.Vertex{DstX: x - size, DstY: y - size, SrcX: 0, SrcY: 0, ColorR: r, ColorG: gVal, ColorB: b, ColorA: a},
+			ebiten.Vertex{DstX: x + size, DstY: y - size, SrcX: 1, SrcY: 0, ColorR: r, ColorG: gVal, ColorB: b, ColorA: a},
+			ebiten.Vertex{DstX: x + size, DstY: y + size, SrcX: 1, SrcY: 1, ColorR: r, ColorG: gVal, ColorB: b, ColorA: a},
+			ebiten.Vertex{DstX: x - size, DstY: y + size, SrcX: 0, SrcY: 1, ColorR: r, ColorG: gVal, ColorB: b, ColorA: a},
+		)
+
+		indices = append(indices,
+			baseIdx, baseIdx+1, baseIdx+2,
+			baseIdx, baseIdx+2, baseIdx+3,
+		)
+	}
+
+	screen.DrawTriangles(vertices, indices, emptyImage, nil)
 }

@@ -7,6 +7,7 @@ import (
 	"math/rand"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 type Particle struct {
@@ -48,16 +49,26 @@ func (p *Particle) Update() {
 }
 
 func (p *Particle) Draw(screen *ebiten.Image) {
-	size := 3.0
-	for x := 0.0; x < size; x++ {
-		for y := 0.0; y < size; y++ {
-			screen.Set(int(p.position.X+x), int(p.position.Y+y), p.color)
-		}
-	}
+	vector.DrawFilledCircle(
+		screen,
+		float32(p.position.X),
+		float32(p.position.Y),
+		2.0,
+		p.color,
+		false,
+	)
 }
 
 func (p *Particle) IsDead() bool {
 	return p.life <= 0
+}
+
+func (p *Particle) GetPosition() systems.Vector {
+	return p.position
+}
+
+func (p *Particle) GetColor() color.RGBA {
+	return p.color
 }
 
 func cos(angle float64) float64 {
