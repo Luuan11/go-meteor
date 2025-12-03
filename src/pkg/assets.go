@@ -111,6 +111,12 @@ func PlaySound(soundData []byte) {
 
 	player.SetVolume(0.8)
 	player.Play()
+
+	go func() {
+		for player.IsPlaying() {
+		}
+		player.Close()
+	}()
 }
 
 func PlayShootSound() {
