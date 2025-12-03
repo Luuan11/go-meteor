@@ -165,15 +165,12 @@ function checkRateLimit(ip) {
 function isTokenUsed(sessionToken) {
   const now = Date.now();
   
-  // Verifica se o token já foi usado
   if (usedTokens.has(sessionToken)) {
     return true;
   }
   
-  // Marca o token como usado
   usedTokens.set(sessionToken, now);
   
-  // Limpa tokens antigos (mais de 15 minutos)
   if (usedTokens.size > 1000) {
     const cutoff = now - 15 * 60 * 1000;
     for (const [key, value] of usedTokens.entries()) {
