@@ -19,7 +19,7 @@ type Star struct {
 	position   systems.Vector
 	movement   systems.Vector
 	size       float32
-	spriteType int 
+	spriteType int
 }
 
 func initStarSprites() {
@@ -56,9 +56,9 @@ func NewStar() *Star {
 
 	spriteType := 0
 	if size > 2.0 {
-		spriteType = 2 
+		spriteType = 2
 	} else if size > 1.5 {
-		spriteType = 1 
+		spriteType = 1
 	}
 
 	m := &Star{
