@@ -837,11 +837,11 @@ func (g *Game) addScore(basePoints int) {
 		points = 1
 	}
 	g.score += points
-	
+
 	if g.score < 0 {
 		g.score = 0
 	}
-	
+
 	if g.score >= g.wave*config.WaveScoreThreshold {
 		g.wave++
 	}

@@ -41,9 +41,9 @@ const (
 	ParticleCount    = 15
 	ParticleSpeed    = 3.0
 
-	ScreenShakeDuration  = 10
-	ScreenShakeIntensity = 8.0
-	ScreenShakeBossHit   = 5
+	ScreenShakeDuration   = 10
+	ScreenShakeIntensity  = 8.0
+	ScreenShakeBossHit    = 5
 	ScreenShakeBossDefeat = 20
 
 	BossWaveInterval     = 5
