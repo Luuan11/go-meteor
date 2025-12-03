@@ -3,9 +3,15 @@ package input
 import (
 	"image/color"
 	"math"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
+)
+
+const (
+	// Debounce delay in milliseconds
+	touchDebounceDelay = 100
 )
 
 type Joystick struct {
@@ -87,7 +93,6 @@ func (j *Joystick) Draw(screen *ebiten.Image) {
 		knobColor = color.RGBA{255, 255, 255, 220}
 	}
 
-	// Otimizado: usa vector ao invés de ebitenutil
 	vector.DrawFilledCircle(screen, float32(j.centerX), float32(j.centerY), float32(j.radius), baseColor, false)
 
 	knobX := j.centerX + j.deltaX*j.radius*0.6
@@ -104,12 +109,13 @@ func (j *Joystick) IsPressed() bool {
 }
 
 type ShootButton struct {
-	x          float64
-	y          float64
-	radius     float64
-	touchID    ebiten.TouchID
-	isActive   bool
-	wasPressed bool
+	x             float64
+	y             float64
+	radius        float64
+	touchID       ebiten.TouchID
+	isActive      bool
+	wasPressed    bool
+	lastPressTime int64 // For debouncing
 }
 
 func NewShootButton(x, y, radius float64) *ShootButton {
@@ -125,8 +131,14 @@ func NewShootButton(x, y, radius float64) *ShootButton {
 
 func (sb *ShootButton) Update(touchIDs []ebiten.TouchID) bool {
 	pressed := false
+	currentTime := time.Now().UnixMilli()
 
 	if !sb.isActive {
+		// Apply debounce to prevent rapid repeated touches
+		if currentTime-sb.lastPressTime < touchDebounceDelay {
+			return false
+		}
+
 		for _, id := range touchIDs {
 			x, y := ebiten.TouchPosition(id)
 			fx, fy := float64(x), float64(y)
@@ -138,6 +150,7 @@ func (sb *ShootButton) Update(touchIDs []ebiten.TouchID) bool {
 				if !sb.wasPressed {
 					pressed = true
 					sb.wasPressed = true
+					sb.lastPressTime = currentTime
 				}
 				break
 			}
@@ -167,7 +180,6 @@ func (sb *ShootButton) Draw(screen *ebiten.Image) {
 		buttonColor = color.RGBA{255, 150, 150, 180}
 	}
 
-	// Otimizado: usa vector ao invés de ebitenutil
 	vector.DrawFilledCircle(screen, float32(sb.x), float32(sb.y), float32(sb.radius), buttonColor, false)
 
 	circleColor := color.RGBA{255, 255, 255, 200}
