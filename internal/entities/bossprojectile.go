@@ -18,7 +18,7 @@ type BossProjectile struct {
 func NewBossProjectile(x, y float64) *BossProjectile {
 	return &BossProjectile{
 		position: systems.Vector{X: x, Y: y},
-		velocity: systems.Vector{X: 0, Y: config.BossProjectileSpeed},
+		velocity: systems.Vector{X: 0, Y: 5.0},
 		size:     10,
 	}
 }
@@ -27,7 +27,7 @@ func (bp *BossProjectile) Reset(x, y float64) {
 	bp.position.X = x
 	bp.position.Y = y
 	bp.velocity.X = 0
-	bp.velocity.Y = config.BossProjectileSpeed
+	bp.velocity.Y = 5.0
 	bp.size = 10
 }
 

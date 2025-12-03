@@ -8,7 +8,6 @@ import (
 	assets "go-meteor/src/pkg"
 )
 
-// GameInterface defines the methods that Player needs from Game
 type GameInterface interface {
 	AddLaser(laser *Laser)
 	GetSuperPowerActive() bool

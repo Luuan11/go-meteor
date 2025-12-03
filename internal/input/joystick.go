@@ -10,7 +10,6 @@ import (
 )
 
 const (
-	// Debounce delay in milliseconds
 	touchDebounceDelay = 100
 )
 
@@ -134,7 +133,6 @@ func (sb *ShootButton) Update(touchIDs []ebiten.TouchID) bool {
 	currentTime := time.Now().UnixMilli()
 
 	if !sb.isActive {
-		// Apply debounce to prevent rapid repeated touches
 		if currentTime-sb.lastPressTime < touchDebounceDelay {
 			return false
 		}
