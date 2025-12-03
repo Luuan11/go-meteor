@@ -235,7 +235,9 @@ func (g *Game) updatePlaying() error {
 			bp.Update()
 		}
 		for _, m := range g.boss.GetMinions() {
-			m.Update()
+			if m != nil {
+				m.Update()
+			}
 		}
 	}
 
@@ -842,33 +844,6 @@ func (g *Game) addScore(basePoints int) {
 	
 	if g.score >= g.wave*config.WaveScoreThreshold {
 		g.wave++
-	}
-}
-
-// updateAllEntities atualiza todas as entidades do jogo
-func (g *Game) updateAllEntities() {
-	for _, p := range g.powerUps {
-		p.Update()
-	}
-
-	g.updateMeteors()
-
-	for _, l := range g.lasers {
-		l.Update()
-	}
-
-	for _, p := range g.particles {
-		p.Update()
-	}
-
-	if g.boss != nil {
-		g.boss.Update()
-		for _, bp := range g.bossProjectiles {
-			bp.Update()
-		}
-		for _, m := range g.boss.GetMinions() {
-			m.Update()
-		}
 	}
 }
 
