@@ -101,3 +101,21 @@ func (m *Meteor) IsOutOfScreen() bool {
 func (m *Meteor) GetPosition() systems.Vector {
 	return m.position
 }
+
+func (m *Meteor) GetMovement() systems.Vector {
+	return m.movement
+}
+
+func (m *Meteor) SetMovementY(y float64) {
+	m.movement.Y = y
+}
+
+func (m *Meteor) ApplySlowMotion(factor float64) {
+	m.movement.X *= factor
+	m.movement.Y *= factor
+}
+
+func (m *Meteor) RestoreSpeed() {
+	m.movement.X /= config.SlowMotionFactor
+	m.movement.Y /= config.SlowMotionFactor
+}
