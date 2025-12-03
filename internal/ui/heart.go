@@ -6,10 +6,18 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-func DrawHeart(screen *ebiten.Image, x, y int, filled bool) {
-	heartColor := color.RGBA{255, 50, 50, 255}
-	if !filled {
-		heartColor = color.RGBA{100, 100, 100, 100}
+var (
+	heartFilledColor   = color.RGBA{255, 50, 50, 255}
+	heartUnfilledColor = color.RGBA{100, 100, 100, 100}
+)
+
+var heartFilledSprite *ebiten.Image
+var heartUnfilledSprite *ebiten.Image
+var heartSpritesInitialized = false
+
+func initHeartSprites() {
+	if heartSpritesInitialized {
+		return
 	}
 
 	heartPixels := []struct{ dx, dy int }{
@@ -25,11 +33,39 @@ func DrawHeart(screen *ebiten.Image, x, y int, filled bool) {
 	}
 
 	scale := 2
+	width := 9 * scale
+	height := 9 * scale
+
+	heartFilledSprite = ebiten.NewImage(width, height)
 	for _, p := range heartPixels {
 		for sx := 0; sx < scale; sx++ {
 			for sy := 0; sy < scale; sy++ {
-				screen.Set(x+p.dx*scale+sx, y+p.dy*scale+sy, heartColor)
+				heartFilledSprite.Set(p.dx*scale+sx, p.dy*scale+sy, heartFilledColor)
 			}
 		}
 	}
+
+	heartUnfilledSprite = ebiten.NewImage(width, height)
+	for _, p := range heartPixels {
+		for sx := 0; sx < scale; sx++ {
+			for sy := 0; sy < scale; sy++ {
+				heartUnfilledSprite.Set(p.dx*scale+sx, p.dy*scale+sy, heartUnfilledColor)
+			}
+		}
+	}
+
+	heartSpritesInitialized = true
+}
+
+func DrawHeart(screen *ebiten.Image, x, y int, filled bool) {
+	initHeartSprites()
+
+	sprite := heartUnfilledSprite
+	if filled {
+		sprite = heartFilledSprite
+	}
+
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(float64(x), float64(y))
+	screen.DrawImage(sprite, op)
 }

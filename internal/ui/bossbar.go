@@ -37,7 +37,7 @@ func (bb *BossBar) Draw(screen *ebiten.Image, currentHealth, maxHealth int) {
 	barWidth := float32(600)
 	barHeight := float32(30)
 	x := float32(config.ScreenWidth-int(barWidth)) / 2
-	y := float32(60)
+	y := float32(30)
 
 	bgColor := color.RGBA{50, 50, 50, 200}
 	vector.DrawFilledRect(screen, x-2, y-2, barWidth+4, barHeight+4, bgColor, false)
@@ -65,7 +65,7 @@ func (bb *BossBar) Draw(screen *ebiten.Image, currentHealth, maxHealth int) {
 	borderColor := color.RGBA{200, 200, 200, 255}
 	vector.StrokeRect(screen, x, y, barWidth, barHeight, 2, borderColor, false)
 
-	bossText := "⚠️ ALIEN BOSS"
+	bossText := "ALIEN BOSS"
 	bossX := int(x)
 	text.Draw(screen, bossText, assets.FontSmall, bossX, int(y)-5, color.RGBA{255, 50, 50, 255})
 
