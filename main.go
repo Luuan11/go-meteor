@@ -14,7 +14,6 @@ func main() {
 	ebiten.SetWindowSize(config.ScreenWidth, config.ScreenHeight)
 	ebiten.SetWindowTitle("Meteor Game")
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
-	// TESTE: VSync habilitado para ver se melhora
 	ebiten.SetVsyncEnabled(true)
 	ebiten.SetTPS(60)
 

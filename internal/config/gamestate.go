@@ -10,3 +10,11 @@ const (
 	StateBossFight
 	StateWaitingNameInput
 )
+
+type BossType int
+
+const (
+	BossTank BossType = iota
+	BossSniper
+	BossSwarm
+)
