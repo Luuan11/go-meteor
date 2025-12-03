@@ -67,6 +67,7 @@ const (
 	BossSwarmShootCooldown   = time.Millisecond * 1200
 	BossSwarmProjectileSpeed = 5.0
 	BossMinionHealth         = 3
+	BossMinionSize           = 15.0
 	BossMinionCount          = 3
 
 	// UI Constants

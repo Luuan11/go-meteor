@@ -26,7 +26,7 @@ func NewMinion(boss *Boss, offsetAngle float64) *Minion {
 		offset:      40,
 		offsetAngle: offsetAngle,
 		health:      config.BossMinionHealth,
-		size:        15,
+		size:        config.BossMinionSize,
 		parentBoss:  boss,
 	}
 }

@@ -118,6 +118,7 @@ func NewGame() *Game {
 	g.player = entities.NewPlayer(g)
 	g.menu = ui.NewMenu()
 	g.pauseMenu = ui.NewPauseMenu()
+	g.initMobileControls()
 
 	g.loadHighScore()
 	g.loadLeaderboard()
@@ -152,6 +153,15 @@ func (g *Game) Update() error {
 	return err
 }
 
+func (g *Game) initMobileControls() {
+	if g.joystick == nil {
+		g.joystick = input.NewJoystick(100, float64(config.ScreenHeight-120), 60)
+	}
+	if g.shootButton == nil {
+		g.shootButton = input.NewShootButton(float64(config.ScreenWidth-100), float64(config.ScreenHeight-120), 50)
+	}
+}
+
 func (g *Game) updateMenu() error {
 	g.menu.SetScores(g.highScore, g.lastScore)
 
@@ -161,8 +171,7 @@ func (g *Game) updateMenu() error {
 	if len(touchIDs) > 0 && !g.touchDetected {
 		g.touchDetected = true
 		g.isMobile = true
-		g.joystick = input.NewJoystick(100, float64(config.ScreenHeight-120), 60)
-		g.shootButton = input.NewShootButton(float64(config.ScreenWidth-100), float64(config.ScreenHeight-120), 50)
+		g.initMobileControls()
 	}
 
 	g.menu.Update()
@@ -190,6 +199,7 @@ func (g *Game) updatePlaying() error {
 	if len(touchIDs) > 0 && !g.touchDetected {
 		g.touchDetected = true
 		g.isMobile = true
+		g.initMobileControls()
 	}
 	g.handleMobileControls(touchIDs)
 
@@ -838,10 +848,6 @@ func (g *Game) addScore(basePoints int) {
 	}
 	g.score += points
 
-	if g.score < 0 {
-		g.score = 0
-	}
-
 	if g.score >= g.wave*config.WaveScoreThreshold {
 		g.wave++
 	}
@@ -963,8 +969,6 @@ func (g *Game) checkBossCollisions() {
 	}
 
 	for i := len(g.lasers) - 1; i >= 0; i-- {
-		hit := false
-
 		if g.lasers[i].Collider().Intersects(g.boss.Collider()) {
 			isDead := g.boss.TakeDamage(1)
 
@@ -980,10 +984,10 @@ func (g *Game) checkBossCollisions() {
 				g.defeatBoss()
 				return
 			}
-			hit = true
+			continue
 		}
 
-		if !hit && g.boss.GetBossType() == config.BossSwarm {
+		if g.boss.GetBossType() == config.BossSwarm {
 			for mIdx, minion := range g.boss.GetMinions() {
 				if minion != nil && g.lasers[i].Collider().Intersects(minion.Collider()) {
 					isDead := minion.TakeDamage(1)
