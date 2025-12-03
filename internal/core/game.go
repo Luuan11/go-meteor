@@ -176,8 +176,6 @@ func (g *Game) updateMenu() error {
 }
 
 func (g *Game) updatePlaying() error {
-	sectionStart := time.Now()
-
 	if g.shouldPause() {
 		g.state = config.StatePaused
 		return nil
@@ -195,18 +193,9 @@ func (g *Game) updatePlaying() error {
 	}
 	g.handleMobileControls(touchIDs)
 
-	if time.Since(sectionStart) > 5*time.Millisecond {
-		fmt.Printf("  ⚠️ Input slow: %v\n", time.Since(sectionStart))
-	}
-
-	sectionStart = time.Now()
 	g.player.Update()
 	g.notification.Update()
-	if time.Since(sectionStart) > 5*time.Millisecond {
-		fmt.Printf("  ⚠️ Player update slow: %v\n", time.Since(sectionStart))
-	}
 
-	sectionStart = time.Now()
 	speedMultiplier := 1.0 + float64(g.wave-1)*config.WaveDifficultyFactor
 	meteorsPerWave := max(config.MeteorsPerWaveOffset, config.MeteorsPerWaveOffset+(g.wave-1)/config.WaveMeteoIncrement)
 
@@ -223,17 +212,8 @@ func (g *Game) updatePlaying() error {
 		p.Reset()
 		g.powerUps = append(g.powerUps, p)
 	})
-	if time.Since(sectionStart) > 5*time.Millisecond {
-		fmt.Printf("  ⚠️ Spawning slow: %v\n", time.Since(sectionStart))
-	}
 
-	sectionStart = time.Now()
 	g.updateGameTimers()
-	if time.Since(sectionStart) > 5*time.Millisecond {
-		fmt.Printf("  ⚠️ Timers slow: %v\n", time.Since(sectionStart))
-	}
-
-	sectionStart = time.Now()
 
 	for _, p := range g.powerUps {
 		p.Update()
@@ -259,23 +239,13 @@ func (g *Game) updatePlaying() error {
 		}
 	}
 
-	if time.Since(sectionStart) > 5*time.Millisecond {
-		fmt.Printf("  ⚠️ Entity updates slow: %v (M:%d L:%d P:%d)\n",
-			time.Since(sectionStart), len(g.meteors), len(g.lasers), len(g.particles))
-	}
-
 	playerDied := g.checkCollisions()
 
 	if playerDied {
 		return nil
 	}
 
-	sectionStart = time.Now()
 	g.player.UpdateTimers()
-	if time.Since(sectionStart) > 5*time.Millisecond {
-		fmt.Printf("  ⚠️ Player timers slow: %v\n", time.Since(sectionStart))
-	}
-
 	g.cleanObjects()
 
 	g.screenShake = max(0, g.screenShake-1)
@@ -363,7 +333,8 @@ func (g *Game) checkCollisions() bool {
 	g.filterMeteors(meteorsToRemove)
 	g.filterLasers(lasersToRemove)
 
-	for i := range g.meteors {
+	// Colisões meteoro-player (reverse iteration para remoção segura)
+	for i := len(g.meteors) - 1; i >= 0; i-- {
 		if g.meteors[i].Collider().Intersects(g.player.Collider()) {
 			isDead := g.player.TakeDamage()
 
@@ -371,21 +342,15 @@ func (g *Game) checkCollisions() bool {
 			g.meteors = append(g.meteors[:i], g.meteors[i+1:]...)
 
 			if isDead {
-				g.saveHighScore()
-				if g.leaderboard.IsTopScore(g.score) && g.hasNameInputModal() {
-					g.state = config.StateWaitingNameInput
-					g.showNameInputModal()
-				} else {
-					g.state = config.StateGameOver
-				}
-				return true
+				return g.handleGameOver()
 			}
 			g.addScreenShake(config.ScreenShakeDuration)
 			break
 		}
 	}
 
-	for i := range g.powerUps {
+	// Colisões power-up (reverse iteration para remoção segura)
+	for i := len(g.powerUps) - 1; i >= 0; i-- {
 		if g.powerUps[i].Collider().Intersects(g.player.Collider()) {
 			powerType := g.powerUps[i].GetType()
 			g.powerUpPool.Put(g.powerUps[i])
@@ -825,6 +790,18 @@ func (g *Game) addScreenShake(intensity int) {
 	g.screenShake = intensity
 }
 
+// handleGameOver processa o fim do jogo e verifica leaderboard
+func (g *Game) handleGameOver() bool {
+	g.saveHighScore()
+	if g.leaderboard.IsTopScore(g.score) && g.hasNameInputModal() {
+		g.state = config.StateWaitingNameInput
+		g.showNameInputModal()
+	} else {
+		g.state = config.StateGameOver
+	}
+	return true
+}
+
 // filterMeteors remove meteoros marcados e retorna à pool
 func (g *Game) filterMeteors(toRemove map[int]bool) {
 	newMeteors := make([]*entities.Meteor, 0, len(g.meteors))
@@ -849,14 +826,6 @@ func (g *Game) filterLasers(toRemove map[int]bool) {
 		}
 	}
 	g.lasers = newLasers
-}
-
-// removeLaserAt remove laser no índice especificado
-func (g *Game) removeLaserAt(index int) {
-	if index >= 0 && index < len(g.lasers) {
-		g.laserPool.Put(g.lasers[index])
-		g.lasers = append(g.lasers[:index], g.lasers[index+1:]...)
-	}
 }
 
 // addScore adiciona pontos com combo e avança waves
@@ -1089,13 +1058,7 @@ func (g *Game) checkBossCollisions() {
 			g.addScreenShake(config.ScreenShakeDuration)
 
 			if isDead {
-				g.saveHighScore()
-				if g.leaderboard.IsTopScore(g.score) && g.hasNameInputModal() {
-					g.state = config.StateWaitingNameInput
-					g.showNameInputModal()
-				} else {
-					g.state = config.StateGameOver
-				}
+				g.handleGameOver()
 				return
 			}
 			break
