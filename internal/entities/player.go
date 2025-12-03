@@ -2,7 +2,6 @@ package entities
 
 import (
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/inpututil"
 
 	"go-meteor/internal/config"
 	"go-meteor/internal/systems"
@@ -138,7 +137,7 @@ func (p *Player) Update() {
 	if ebiten.IsKeyPressed(ebiten.KeyDown) {
 		p.MoveDown()
 	}
-	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
+	if ebiten.IsKeyPressed(ebiten.KeySpace) {
 		p.Shoot()
 	}
 
