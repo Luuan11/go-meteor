@@ -1004,17 +1004,12 @@ func (g *Game) checkBossCollisions() {
 		}
 	}
 
-	for _, pu := range g.powerUps {
-		if pu.Collider().Intersects(g.player.Collider()) {
-			powerType := pu.GetType()
-			g.powerUpPool.Put(pu)
-			validPowerUps := make([]*entities.PowerUp, 0, len(g.powerUps))
-			for _, p := range g.powerUps {
-				if p != pu {
-					validPowerUps = append(validPowerUps, p)
-				}
-			}
-			g.powerUps = validPowerUps
+	// Colisões power-up (reverse iteration)
+	for i := len(g.powerUps) - 1; i >= 0; i-- {
+		if g.powerUps[i].Collider().Intersects(g.player.Collider()) {
+			powerType := g.powerUps[i].GetType()
+			g.powerUpPool.Put(g.powerUps[i])
+			g.powerUps = append(g.powerUps[:i], g.powerUps[i+1:]...)
 
 			g.handlePowerUpCollected(powerType)
 			assets.PlayPowerUpSound()
@@ -1051,7 +1046,6 @@ func (g *Game) defeatBoss() {
 		timeBonus := int((30 - fightDuration) * 2)
 		baseReward += timeBonus
 		g.notification.Show(fmt.Sprintf("+%d TIME BONUS!", timeBonus), ui.NotificationLife)
-		time.Sleep(500 * time.Millisecond)
 	}
 
 	g.score += baseReward
@@ -1063,7 +1057,6 @@ func (g *Game) defeatBoss() {
 	if g.bossNoDamage {
 		numPowerUps = 2
 		g.notification.Show("PERFECT! +EXTRA POWER-UP", ui.NotificationSuperPower)
-		time.Sleep(500 * time.Millisecond)
 	}
 
 	for i := 0; i < numPowerUps; i++ {
