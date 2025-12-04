@@ -149,7 +149,6 @@ function updateLeaderboardUI(leaderboard) {
   }
   
   container.innerHTML = leaderboard.map((entry, index) => {
-    const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
     const rank = index + 1;
     const rankClass = index < 3 ? `rank-${rank}` : '';
     const displayName = truncateName(entry.name || 'Anonymous', 20);
@@ -158,7 +157,7 @@ function updateLeaderboardUI(leaderboard) {
     return `
       <div class="leaderboard-entry ${rankClass}">
         <div class="entry-left">
-          <span class="entry-rank">${medal || rank}</span>
+          <span class="entry-rank">${rank}</span>
           <span class="entry-name">${escapeHtml(displayName)}</span>
         </div>
         <span class="entry-score">${displayScore.toLocaleString()}</span>

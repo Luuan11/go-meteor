@@ -127,8 +127,9 @@ function validateScore(name, score, sessionToken) {
     return { valid: false, error: 'Game time too short (minimum 30 seconds)' };
   }
   
-  const maxScorePerSecond = 10;
-  const maxPossibleScore = Math.floor(gameTimeSeconds * maxScorePerSecond);
+  const baseScorePerSecond = 10;
+  const bossBonus = 200;
+  const maxPossibleScore = Math.floor(gameTimeSeconds * baseScorePerSecond) + bossBonus;
   
   if (score > maxPossibleScore) {
     return { valid: false, error: `Score too high for game time (max ${maxPossibleScore} in ${Math.floor(gameTimeSeconds)}s)` };

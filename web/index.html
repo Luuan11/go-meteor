@@ -12,6 +12,11 @@
     <script src="assets/js/name-input-modal.js"></script>
 </head>
 <body>
+    <audio id="bgMusic" loop preload="auto">
+        <source src="assets/sounds/music.mp3" type="audio/mpeg">
+    </audio>
+
+    <script src="assets/js/music.js"></script>
 
     <div class="main-container">
         <div class="game-container">
@@ -36,9 +41,13 @@
             <p><kbd> ↓ </kbd> To move down</p>
             
             <h3>Power-Ups</h3>
-            <p><strong>Super Shot:</strong> Triple shot with increased damage</p>
+            <p><strong>Super Shot:</strong> Triple shot with increased damage (2x)</p>
             <p><strong>Health:</strong> Restores 1 life point</p>
-            <p><strong>Shield:</strong> Grants temporary invincibility</p>
+            <p><strong>Shield:</strong> Grants temporary invincibility (10s)</p>
+            <p><strong>Slow Motion:</strong> Slows down meteors for 15 seconds</p>
+            <p><strong>Laser Beam:</strong> Powerful penetrating shots 3x damage (Wave 5+)</p>
+            <p><strong>Nuke:</strong> Clears screen for 5s keeping combo (Wave 5+)</p>
+            <p><strong>Extra Life:</strong> Grants 1 extra life, max 5 hearts (Wave 5+)</p>
         </div>
     </div>
 

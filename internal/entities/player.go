@@ -11,6 +11,7 @@ import (
 type GameInterface interface {
 	AddLaser(laser *Laser)
 	GetSuperPowerActive() bool
+	GetLaserBeamActive() bool
 	ResetCombo()
 }
 
@@ -101,7 +102,8 @@ func (p *Player) Shoot() {
 	}
 
 	superPowerActive := p.game.GetSuperPowerActive()
-	bullet := NewLaser(spawnPos, superPowerActive)
+	laserBeamActive := p.game.GetLaserBeamActive()
+	bullet := NewLaser(spawnPos, superPowerActive, laserBeamActive)
 	p.game.AddLaser(bullet)
 
 	if superPowerActive {
@@ -114,8 +116,8 @@ func (p *Player) Shoot() {
 			Y: p.position.Y,
 		}
 
-		bulletLeft := NewLaser(spawnLeftPos, true)
-		bulletRight := NewLaser(spawnRightPos, true)
+		bulletLeft := NewLaser(spawnLeftPos, true, laserBeamActive)
+		bulletRight := NewLaser(spawnRightPos, true, laserBeamActive)
 		p.game.AddLaser(bulletLeft)
 		p.game.AddLaser(bulletRight)
 	}
@@ -219,6 +221,12 @@ func (p *Player) GetLives() int {
 
 func (p *Player) Heal() {
 	if p.lives < config.InitialLives {
+		p.lives++
+	}
+}
+
+func (p *Player) GainExtraLife() {
+	if p.lives < config.PlayerMaxTotalLives {
 		p.lives++
 	}
 }

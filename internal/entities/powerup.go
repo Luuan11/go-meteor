@@ -16,6 +16,9 @@ const (
 	PowerUpHeart
 	PowerUpShield
 	PowerUpSlowMotion
+	PowerUpLaser
+	PowerUpNuke
+	PowerUpExtraLife
 )
 
 type PowerUp struct {
@@ -78,6 +81,10 @@ func (p *PowerUp) Reset() {
 		p.sprite = assets.ShieldPowerUpSprite
 	case PowerUpSlowMotion:
 		p.sprite = assets.ClockPowerUpSprite
+	case PowerUpLaser:
+		p.sprite = assets.LaserPowerUpSprite
+	case PowerUpNuke:
+		p.sprite = assets.NukePowerUpSprite
 	default:
 		p.sprite = assets.PowerUpSprites
 	}
@@ -111,4 +118,42 @@ func (p *PowerUp) IsOutOfScreen() bool {
 
 func (p *PowerUp) GetType() PowerUpType {
 	return p.powerType
+}
+
+func NewPowerUpWithType(powerType PowerUpType) *PowerUp {
+	pos := systems.Vector{
+		X: rand.Float64() * config.ScreenWidth,
+		Y: -100,
+	}
+
+	movement := systems.Vector{
+		X: 0,
+		Y: config.PowerUpSpeed,
+	}
+
+	var sprite *ebiten.Image
+
+	switch powerType {
+	case PowerUpHeart:
+		sprite = assets.HeartPowerUpSprite
+	case PowerUpShield:
+		sprite = assets.ShieldPowerUpSprite
+	case PowerUpSlowMotion:
+		sprite = assets.ClockPowerUpSprite
+	case PowerUpLaser:
+		sprite = assets.LaserPowerUpSprite
+	case PowerUpNuke:
+		sprite = assets.NukePowerUpSprite
+	case PowerUpExtraLife:
+		sprite = assets.ExtraLifePowerUpSprite
+	default:
+		sprite = assets.PowerUpSprites
+	}
+
+	return &PowerUp{
+		position:  pos,
+		movement:  movement,
+		sprite:    sprite,
+		powerType: powerType,
+	}
 }

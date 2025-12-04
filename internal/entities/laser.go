@@ -15,15 +15,23 @@ type Laser struct {
 	rotation      float64
 	rotationSpeed float64
 	isSuperPower  bool
+	isLaserBeam   bool
+	damage        int
 }
 
-func NewLaser(pos systems.Vector, isSuperPower bool) *Laser {
+func NewLaser(pos systems.Vector, isSuperPower bool, isLaserBeam bool) *Laser {
 	sprite := assets.LaserSprite
 	speed := config.LaserSpeed
+	damage := 1
 
-	if isSuperPower {
+	if isLaserBeam {
+		sprite = assets.LaserBeamSprite
+		speed = config.SuperLaserSpeed
+		damage = 3
+	} else if isSuperPower {
 		sprite = assets.SuperPowerSprite
 		speed = config.SuperLaserSpeed
+		damage = 2
 	}
 
 	bounds := sprite.Bounds()
@@ -39,6 +47,8 @@ func NewLaser(pos systems.Vector, isSuperPower bool) *Laser {
 		rotationSpeed: config.MeteorRotationMax * 2,
 		sprite:        sprite,
 		isSuperPower:  isSuperPower,
+		isLaserBeam:   isLaserBeam,
+		damage:        damage,
 	}
 
 	return b
@@ -76,6 +86,14 @@ func (l *Laser) Collider() systems.Rect {
 		float64(bounds.Dx()),
 		float64(bounds.Dy()),
 	)
+}
+
+func (l *Laser) IsLaserBeam() bool {
+	return l.isLaserBeam
+}
+
+func (l *Laser) GetDamage() int {
+	return l.damage
 }
 
 func (l *Laser) IsOutOfScreen() bool {
