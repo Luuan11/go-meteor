@@ -17,6 +17,7 @@ var assets embed.FS
 
 var PlayerSprite = mustLoadImage("profile/player.png")
 var LaserSprite = mustLoadImage("profile/laser.png")
+var LaserBeamSprite = mustLoadImage("profile/laserbeam_shot.png")
 var GopherPlayer = mustLoadImage("profile/go_player.png")
 var PauseIcon = mustLoadImage("profile/pause_icon.png")
 var BossSprite = mustLoadImage("boss/boss_ship.png")
@@ -32,8 +33,13 @@ var FontSmall = mustLoadFont("font/fontui.ttf", 28)
 var PowerUpSprites = mustLoadImage("powers/powerup.png")
 var SuperPowerSprite = mustLoadImage("powers/superpower.png")
 var HeartPowerUpSprite = mustLoadImage("powers/heart.png")
+var HeartUISprite = mustLoadImage("powers/heart.png")
+var ExtraLifeUISprite = mustLoadImage("powers/extralife.png")
 var ShieldPowerUpSprite = mustLoadImage("powers/shield.png")
 var ClockPowerUpSprite = mustLoadImage("powers/clock.png")
+var LaserPowerUpSprite = mustLoadImage("powers/laser.png")
+var NukePowerUpSprite = mustLoadImage("powers/nuke.png")
+var ExtraLifePowerUpSprite = mustLoadImage("powers/extralife.png")
 
 func PlayShootSound()     {}
 func PlayExplosionSound() {}

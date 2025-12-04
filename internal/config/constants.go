@@ -8,6 +8,9 @@ const (
 
 	PlayerSpeed         = 6.0
 	PlayerShootCooldown = time.Millisecond * 500
+	PlayerMaxLives      = 3
+	PlayerMaxExtraLives = 2
+	PlayerMaxTotalLives = 5
 
 	MeteorMinSpeed    = 2.0
 	MeteorMaxSpeed    = 13.0
@@ -24,6 +27,11 @@ const (
 	ShieldTime       = 10 * time.Second
 	SlowMotionTime   = 15 * time.Second
 	SlowMotionFactor = 0.25
+
+	LaserBeamTime       = 3500 * time.Millisecond
+	NukeClearScreenTime = 5 * time.Second
+	MinWaveForLaser     = 5
+	MinWaveForNuke      = 5
 
 	StarSpawnTime   = (1 * time.Second) / 2
 	PlanetSpawnTime = 5 * time.Second
@@ -52,21 +60,21 @@ const (
 	BossCooldownTime     = 60 * time.Second
 	PowerUpSpawnTimeBoss = 8 * time.Second
 
-	BossTankHealth          = 80
+	BossTankHealth          = 150
 	BossTankSpeed           = 2.0
 	BossTankShootCooldown   = time.Millisecond * 1000
 	BossTankProjectileSpeed = 4.0
 
-	BossSniperHealth          = 40
+	BossSniperHealth          = 80
 	BossSniperSpeed           = 4.0
 	BossSniperShootCooldown   = time.Millisecond * 600
 	BossSniperProjectileSpeed = 7.0
 
-	BossSwarmHealth          = 60
+	BossSwarmHealth          = 100
 	BossSwarmSpeed           = 3.5
 	BossSwarmShootCooldown   = time.Millisecond * 1200
 	BossSwarmProjectileSpeed = 5.0
-	BossMinionHealth         = 3
+	BossMinionHealth         = 5
 	BossMinionSize           = 15.0
 	BossMinionCount          = 3
 

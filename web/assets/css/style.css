@@ -84,9 +84,21 @@ iframe {
     border-left: 3px solid #8f2fe9;
 }
 
+.entry-rank {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    min-width: 30px;
+    text-align: center;
+}
+
 .leaderboard-entry.rank-1 {
     border-left-color: #ffd700;
     background: rgba(255, 215, 0, 0.1);
+}
+
+.leaderboard-entry.rank-1 .entry-rank {
+    color: rgb(255, 215, 0);
 }
 
 .leaderboard-entry.rank-2 {
@@ -94,9 +106,17 @@ iframe {
     background: rgba(192, 192, 192, 0.1);
 }
 
+.leaderboard-entry.rank-2 .entry-rank {
+    color: rgb(192, 192, 192);
+}
+
 .leaderboard-entry.rank-3 {
     border-left-color: #cd7f32;
     background: rgba(205, 127, 50, 0.1);
+}
+
+.leaderboard-entry.rank-3 .entry-rank {
+    color: rgb(205, 127, 50);
 }
 
 .entry-left {
@@ -176,13 +196,13 @@ iframe {
 }
 
 .tutorial strong {
-    font-size: 25px;
+    font-size: 18px;
     color: #8f2fe9;
 }
 
 .tutorial p {
     margin: 5px 0;
-    font-size: 20px;
+    font-size: 15px;
 }
 
 .credits {

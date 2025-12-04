@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"image/color"
+	"math/rand"
 	"time"
 
 	"go-meteor/internal/config"
@@ -46,6 +47,10 @@ type Game struct {
 	superPowerActive bool
 	slowMotionActive bool
 	slowMotionTimer  *systems.Timer
+	laserBeamActive  bool
+	laserBeamTimer   *systems.Timer
+	nukeActive       bool
+	nukeTimer        *systems.Timer
 
 	boss              *entities.Boss
 	bossProjectiles   []*entities.BossProjectile
@@ -93,6 +98,10 @@ func NewGame() *Game {
 		superPowerActive:   false,
 		slowMotionActive:   false,
 		slowMotionTimer:    systems.NewTimer(config.SlowMotionTime),
+		laserBeamActive:    false,
+		laserBeamTimer:     systems.NewTimer(config.LaserBeamTime),
+		nukeActive:         false,
+		nukeTimer:          systems.NewTimer(config.NukeClearScreenTime),
 		meteorPool:         entities.NewMeteorPool(),
 		laserPool:          entities.NewLaserPool(),
 		powerUpPool:        entities.NewPowerUpPool(),
@@ -209,17 +218,32 @@ func (g *Game) updatePlaying() error {
 	speedMultiplier := 1.0 + float64(g.wave-1)*config.WaveDifficultyFactor
 	meteorsPerWave := max(config.MeteorsPerWaveOffset, config.MeteorsPerWaveOffset+(g.wave-1)/config.WaveMeteoIncrement)
 
-	g.updateAndSpawn(g.meteoSpawnTimer, func() {
-		for i := 0; i < meteorsPerWave; i++ {
-			m := g.meteorPool.Get()
-			m.Reset(speedMultiplier)
-			g.meteors = append(g.meteors, m)
-		}
-	})
+	if !g.nukeActive {
+		g.updateAndSpawn(g.meteoSpawnTimer, func() {
+			for i := 0; i < meteorsPerWave; i++ {
+				m := g.meteorPool.Get()
+				m.Reset(speedMultiplier)
+				g.meteors = append(g.meteors, m)
+			}
+		})
+	}
 
 	g.updateAndSpawn(g.powerUpSpawnTimer, func() {
-		p := g.powerUpPool.Get()
-		p.Reset()
+		var p *entities.PowerUp
+
+		if g.wave >= 5 && rand.Float64() < 0.50 {
+			p = entities.NewPowerUpWithType(entities.PowerUpExtraLife)
+		} else if g.wave >= config.MinWaveForLaser && rand.Float64() < 0.60 {
+			powerType := entities.PowerUpLaser
+			if rand.Float64() < 0.5 {
+				powerType = entities.PowerUpNuke
+			}
+			p = entities.NewPowerUpWithType(powerType)
+		} else {
+			p = g.powerUpPool.Get()
+			p.Reset()
+		}
+
 		g.powerUps = append(g.powerUps, p)
 	})
 
@@ -329,7 +353,9 @@ func (g *Game) checkCollisions() bool {
 				g.createExplosion(g.meteors[i].GetPosition(), config.ParticleCount)
 
 				meteorsToRemove[i] = true
-				lasersToRemove[j] = true
+				if !g.laserBeamActive {
+					lasersToRemove[j] = true
+				}
 
 				g.combo++
 				g.comboTimer.Reset()
@@ -337,7 +363,9 @@ func (g *Game) checkCollisions() bool {
 
 				assets.PlayExplosionSound()
 
-				break
+				if !g.laserBeamActive {
+					break
+				}
 			}
 		}
 	}
@@ -345,7 +373,6 @@ func (g *Game) checkCollisions() bool {
 	g.filterMeteors(meteorsToRemove)
 	g.filterLasers(lasersToRemove)
 
-	// Colisões meteoro-player (reverse iteration para remoção segura)
 	for i := len(g.meteors) - 1; i >= 0; i-- {
 		if g.meteors[i].Collider().Intersects(g.player.Collider()) {
 			isDead := g.player.TakeDamage()
@@ -361,7 +388,6 @@ func (g *Game) checkCollisions() bool {
 		}
 	}
 
-	// Colisões power-up (reverse iteration para remoção segura)
 	for i := len(g.powerUps) - 1; i >= 0; i-- {
 		if g.powerUps[i].Collider().Intersects(g.player.Collider()) {
 			powerType := g.powerUps[i].GetType()
@@ -486,9 +512,19 @@ func (g *Game) drawPlaying(screen *ebiten.Image) {
 }
 
 func (g *Game) drawUI(screen *ebiten.Image) {
-	for i := 0; i < config.InitialLives; i++ {
-		filled := i < g.player.GetLives()
-		ui.DrawHeart(screen, 20+i*25, 20, filled)
+	lives := g.player.GetLives()
+
+	for i := 0; i < lives && i < config.InitialLives; i++ {
+		op := &ebiten.DrawImageOptions{}
+		op.GeoM.Translate(float64(10+i*40), 10)
+		screen.DrawImage(assets.HeartUISprite, op)
+	}
+
+	extraLives := max(0, lives-config.InitialLives)
+	for i := 0; i < extraLives; i++ {
+		op := &ebiten.DrawImageOptions{}
+		op.GeoM.Translate(float64(10+(config.InitialLives+i)*40), 10)
+		screen.DrawImage(assets.ExtraLifeUISprite, op)
 	}
 
 	waveText := fmt.Sprintf("Wave: %d", g.wave)
@@ -501,12 +537,12 @@ func (g *Game) drawUI(screen *ebiten.Image) {
 	}
 
 	scoreText := fmt.Sprintf("Points: %d", g.score)
-	drawText(screen, scoreText, assets.FontUi, 20, 570, color.White)
+	drawText(screen, scoreText, assets.FontSmall, 20, 570, color.White)
 
 	highScoreText := fmt.Sprintf("HIGH SCORE: %d", g.highScore)
-	highScoreWidth := measureText(highScoreText, assets.FontUi)
+	highScoreWidth := measureText(highScoreText, assets.FontSmall)
 	highScoreX := config.ScreenWidth - highScoreWidth - 20
-	drawText(screen, highScoreText, assets.FontUi, highScoreX, 570, color.White)
+	drawText(screen, highScoreText, assets.FontSmall, highScoreX, 570, color.White)
 
 	ui.DrawPauseIcon(screen, g.pauseIconX, g.pauseIconY)
 
@@ -527,6 +563,18 @@ func (g *Game) drawUI(screen *ebiten.Image) {
 	if g.slowMotionActive {
 		progress := float32(g.slowMotionTimer.Progress())
 		ui.DrawPowerUpBarAt(screen, progress, color.RGBA{100, 255, 255, 255}, barY)
+		barY += 30
+	}
+
+	if g.laserBeamActive {
+		progress := float32(g.laserBeamTimer.Progress())
+		ui.DrawPowerUpBarAt(screen, progress, color.RGBA{150, 100, 255, 255}, barY)
+		barY += 30
+	}
+
+	if g.nukeActive {
+		progress := float32(g.nukeTimer.Progress())
+		ui.DrawPowerUpBarAt(screen, progress, color.RGBA{255, 50, 50, 255}, barY)
 	}
 
 	if g.isMobile && g.joystick != nil && g.shootButton != nil {
@@ -577,12 +625,12 @@ func (g *Game) drawGameOver(screen *ebiten.Image) {
 	drawText(screen, tryAgainText, assets.FontUi, tryAgainX, 400, color.White)
 
 	scoreText := fmt.Sprintf("Points: %d", g.score)
-	drawText(screen, scoreText, assets.FontUi, 20, 570, color.White)
+	drawText(screen, scoreText, assets.FontSmall, 20, 570, color.White)
 
 	highScoreText := fmt.Sprintf("HIGH SCORE: %d", g.highScore)
-	highScoreWidth := measureText(highScoreText, assets.FontUi)
+	highScoreWidth := measureText(highScoreText, assets.FontSmall)
 	highScoreX := config.ScreenWidth - highScoreWidth - 20
-	drawText(screen, highScoreText, assets.FontUi, highScoreX, 570, color.White)
+	drawText(screen, highScoreText, assets.FontSmall, highScoreX, 570, color.White)
 }
 
 func (g *Game) AddLaser(l *entities.Laser) {
@@ -698,6 +746,7 @@ func (g *Game) Reset() {
 	g.starSpawnTimer.Reset()
 	g.powerUpSpawnTimer.Reset()
 	g.comboTimer.Reset()
+	g.bossCooldownTimer.Reset()
 
 	g.saveHighScore()
 
@@ -706,7 +755,18 @@ func (g *Game) Reset() {
 	g.wave = 1
 	g.superPowerActive = false
 	g.slowMotionActive = false
+	g.slowMotionTimer.Reset()
+	g.superPowerTimer.Reset()
+	g.laserBeamActive = false
+	g.laserBeamTimer.Reset()
+	g.nukeActive = false
+	g.nukeTimer.Reset()
 	g.screenShake = 0
+	g.boss = nil
+	g.bossDefeated = false
+	g.bossWarningShown = false
+	g.bossNoDamage = false
+	g.bossCount = 0
 	g.initNewGameSession()
 }
 
@@ -718,12 +778,15 @@ func (g *Game) GetSuperPowerActive() bool {
 	return g.superPowerActive
 }
 
+func (g *Game) GetLaserBeamActive() bool {
+	return g.laserBeamActive
+}
+
 func (g *Game) ResetCombo() {
 	g.combo = 0
 	g.comboTimer.Reset()
 }
 
-// updateGameTimers atualiza todos os timers do jogo
 func (g *Game) updateGameTimers() {
 	if g.superPowerActive {
 		g.superPowerTimer.Update()
@@ -741,8 +804,24 @@ func (g *Game) updateGameTimers() {
 		}
 	}
 
+	if g.laserBeamActive {
+		g.laserBeamTimer.Update()
+		if g.laserBeamTimer.IsReady() {
+			g.laserBeamTimer.Reset()
+			g.laserBeamActive = false
+		}
+	}
+
+	if g.nukeActive {
+		g.nukeTimer.Update()
+		if g.nukeTimer.IsReady() {
+			g.nukeTimer.Reset()
+			g.nukeActive = false
+		}
+	}
+
 	g.comboTimer.Update()
-	if g.comboTimer.IsReady() && g.combo > 0 {
+	if g.comboTimer.IsReady() && g.combo > 0 && !g.nukeActive {
 		g.combo = 0
 	}
 
@@ -754,7 +833,6 @@ func (g *Game) updateGameTimers() {
 	}
 }
 
-// updateMeteors atualiza meteoros aplicando slow motion quando ativo
 func (g *Game) updateMeteors() {
 	if g.slowMotionActive {
 		for _, m := range g.meteors {
@@ -787,22 +865,46 @@ func (g *Game) handlePowerUpCollected(powerType entities.PowerUpType) {
 		g.slowMotionActive = true
 		g.slowMotionTimer.Reset()
 		g.notification.Show("SLOW MOTION!", ui.NotificationSuperPower)
+	case entities.PowerUpLaser:
+		g.laserBeamActive = true
+		g.laserBeamTimer.Reset()
+		g.notification.Show("LASER BEAM!", ui.NotificationSuperPower)
+	case entities.PowerUpNuke:
+		g.activateNuke()
+		g.notification.Show("NUKE ACTIVATED!", ui.NotificationSuperPower)
+	case entities.PowerUpExtraLife:
+		g.player.GainExtraLife()
+		g.notification.Show("EXTRA LIFE!", ui.NotificationLife)
 	}
 }
 
-// createExplosion gera partículas na posição especificada
 func (g *Game) createExplosion(pos systems.Vector, count int) {
 	for i := 0; i < count; i++ {
 		g.particles = append(g.particles, effects.NewParticle(pos))
 	}
 }
 
-// addScreenShake adiciona efeito de shake na tela
 func (g *Game) addScreenShake(intensity int) {
 	g.screenShake = intensity
 }
 
-// handleGameOver processa o fim do jogo e verifica leaderboard
+func (g *Game) activateNuke() {
+	meteorsDestroyed := len(g.meteors)
+
+	for _, m := range g.meteors {
+		g.createExplosion(m.GetPosition(), 5)
+		g.meteorPool.Put(m)
+	}
+
+	g.meteors = g.meteors[:0]
+
+	g.addScore(meteorsDestroyed * 2)
+	g.addScreenShake(20)
+	g.nukeActive = true
+	g.nukeTimer.Reset()
+	assets.PlayExplosionSound()
+}
+
 func (g *Game) handleGameOver() bool {
 	g.saveHighScore()
 	if g.leaderboard.IsTopScore(g.score) && g.hasNameInputModal() {
@@ -814,7 +916,6 @@ func (g *Game) handleGameOver() bool {
 	return true
 }
 
-// filterMeteors remove meteoros marcados e retorna à pool
 func (g *Game) filterMeteors(toRemove map[int]bool) {
 	newMeteors := make([]*entities.Meteor, 0, len(g.meteors))
 	for i, m := range g.meteors {
@@ -827,7 +928,6 @@ func (g *Game) filterMeteors(toRemove map[int]bool) {
 	g.meteors = newMeteors
 }
 
-// filterLasers remove lasers marcados e retorna à pool
 func (g *Game) filterLasers(toRemove map[int]bool) {
 	newLasers := make([]*entities.Laser, 0, len(g.lasers))
 	for i, l := range g.lasers {
@@ -840,7 +940,6 @@ func (g *Game) filterLasers(toRemove map[int]bool) {
 	g.lasers = newLasers
 }
 
-// addScore adiciona pontos com combo e avança waves
 func (g *Game) addScore(basePoints int) {
 	points := basePoints + int(float64(g.combo)*config.ComboMultiplier)
 	if points < 1 {
@@ -920,7 +1019,12 @@ func (g *Game) updateBossFight() error {
 	if g.boss != nil {
 		playerPos := g.player.Collider()
 		g.boss.SetPlayerPosition(systems.Vector{X: playerPos.X, Y: playerPos.Y})
-		g.boss.Update()
+
+		if g.slowMotionActive {
+			g.boss.Update()
+		} else {
+			g.boss.Update()
+		}
 
 		if g.boss.CanShoot() && g.boss.GetPosition().Y >= 100 {
 			g.boss.Shoot()
@@ -933,8 +1037,19 @@ func (g *Game) updateBossFight() error {
 	}
 
 	g.updateAndSpawn(g.powerUpSpawnTimer, func() {
-		p := g.powerUpPool.Get()
-		p.Reset()
+		var p *entities.PowerUp
+
+		if g.wave >= config.MinWaveForLaser && rand.Float64() < 0.60 {
+			powerType := entities.PowerUpLaser
+			if rand.Float64() < 0.5 {
+				powerType = entities.PowerUpNuke
+			}
+			p = entities.NewPowerUpWithType(powerType)
+		} else {
+			p = g.powerUpPool.Get()
+			p.Reset()
+		}
+
 		g.powerUps = append(g.powerUps, p)
 	})
 
@@ -970,12 +1085,15 @@ func (g *Game) checkBossCollisions() {
 
 	for i := len(g.lasers) - 1; i >= 0; i-- {
 		if g.lasers[i].Collider().Intersects(g.boss.Collider()) {
-			isDead := g.boss.TakeDamage(1)
+			damage := g.lasers[i].GetDamage()
+			isDead := g.boss.TakeDamage(damage)
 
 			g.createExplosion(g.boss.GetPosition(), 5)
 
-			g.laserPool.Put(g.lasers[i])
-			g.lasers = append(g.lasers[:i], g.lasers[i+1:]...)
+			if !g.lasers[i].IsLaserBeam() {
+				g.laserPool.Put(g.lasers[i])
+				g.lasers = append(g.lasers[:i], g.lasers[i+1:]...)
+			}
 
 			g.addScreenShake(config.ScreenShakeBossHit)
 			assets.PlayExplosionSound()
@@ -990,12 +1108,15 @@ func (g *Game) checkBossCollisions() {
 		if g.boss.GetBossType() == config.BossSwarm {
 			for mIdx, minion := range g.boss.GetMinions() {
 				if minion != nil && g.lasers[i].Collider().Intersects(minion.Collider()) {
-					isDead := minion.TakeDamage(1)
+					damage := g.lasers[i].GetDamage()
+					isDead := minion.TakeDamage(damage)
 
 					g.createExplosion(minion.GetPosition(), config.MinionParticles)
 
-					g.laserPool.Put(g.lasers[i])
-					g.lasers = append(g.lasers[:i], g.lasers[i+1:]...)
+					if !g.lasers[i].IsLaserBeam() {
+						g.laserPool.Put(g.lasers[i])
+						g.lasers = append(g.lasers[:i], g.lasers[i+1:]...)
+					}
 
 					assets.PlayExplosionSound()
 
@@ -1008,7 +1129,6 @@ func (g *Game) checkBossCollisions() {
 		}
 	}
 
-	// Colisões power-up (reverse iteration)
 	for i := len(g.powerUps) - 1; i >= 0; i-- {
 		if g.powerUps[i].Collider().Intersects(g.player.Collider()) {
 			powerType := g.powerUps[i].GetType()
@@ -1135,7 +1255,7 @@ func (g *Game) drawParticlesBatch(screen *ebiten.Image) {
 	for _, p := range g.particles {
 		x := float32(p.GetPosition().X)
 		y := float32(p.GetPosition().Y)
-		size := float32(2.0) // tamanho fixo de particle
+		size := float32(2.0)
 		col := p.GetColor()
 
 		r := float32(col.R) / 255.0
