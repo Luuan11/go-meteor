@@ -29,6 +29,7 @@ type Boss struct {
 	damageTaken   int
 	playerRef     systems.Vector
 	trackingDelay float64
+	direction     float64
 }
 
 func NewBoss(bossType config.BossType) *Boss {
@@ -55,10 +56,11 @@ func NewBoss(bossType config.BossType) *Boss {
 		size = 80
 	}
 
-	// Posição inicial aleatória (esquerda ou direita)
 	startX := float64(config.ScreenWidth) / 4.0
+	direction := 1.0
 	if time.Now().UnixNano()%2 == 0 {
 		startX = float64(config.ScreenWidth) * 3.0 / 4.0
+		direction = -1.0
 	}
 
 	boss := &Boss{
@@ -83,6 +85,7 @@ func NewBoss(bossType config.BossType) *Boss {
 		spawnTime:     time.Now(),
 		damageTaken:   0,
 		trackingDelay: startX,
+		direction:     direction,
 	}
 
 	if bossType == config.BossSwarm {
@@ -121,11 +124,11 @@ func (b *Boss) Update() {
 		}
 	}
 
-	if b.position.X < b.size {
-		b.position.X = b.size
+	if b.position.X < 50 {
+		b.position.X = 50
 	}
-	if b.position.X > config.ScreenWidth-b.size {
-		b.position.X = config.ScreenWidth - b.size
+	if b.position.X > config.ScreenWidth-50 {
+		b.position.X = config.ScreenWidth - 50
 	}
 
 	for _, minion := range b.minions {
@@ -138,26 +141,22 @@ func (b *Boss) Update() {
 func (b *Boss) updateTankMovement() {
 	switch b.movePattern {
 	case 0:
-		// Movimento sinusoidal amplo
-		b.position.X += math.Sin(b.patternTime*0.8) * 3
+		b.position.X += b.direction * 1.5
+		if b.position.X < 50 || b.position.X > config.ScreenWidth-50 {
+			b.direction *= -1
+		}
 	case 1:
-		// Movimento para os lados com limites
-		if b.position.X < 150 {
-			b.position.X += 2
-		} else if b.position.X > config.ScreenWidth-150 {
-			b.position.X -= 2
-		} else {
-			if b.position.X < config.ScreenWidth/2 {
-				b.position.X += 1.5
-			} else {
-				b.position.X -= 1.5
-			}
+		b.position.X += b.direction * 2
+		if b.position.X < 50 || b.position.X > config.ScreenWidth-50 {
+			b.direction *= -1
 		}
 	case 2:
-		// Movimento cossenoidal
-		b.position.X += math.Cos(b.patternTime*0.6) * 3.5
+		b.position.X += b.direction * 2.5
+		b.position.X += math.Sin(b.patternTime*0.8) * 1.5
+		if b.position.X < 50 || b.position.X > config.ScreenWidth-50 {
+			b.direction *= -1
+		}
 	case 3:
-		// Movimento em zigzag
 		if int(b.patternTime*10)%40 < 20 {
 			b.position.X += 2.5
 		} else {
@@ -169,23 +168,17 @@ func (b *Boss) updateTankMovement() {
 func (b *Boss) updateSniperMovement() {
 	switch b.movePattern {
 	case 0:
-		// Movimento sinusoidal rápido
-		b.position.X += math.Sin(b.patternTime*1.5) * 5
+		b.position.X += b.direction * 3
+		b.position.X += math.Sin(b.patternTime*1.5) * 1.5
+		if b.position.X < 50 || b.position.X > config.ScreenWidth-50 {
+			b.direction *= -1
+		}
 	case 1:
-		// Movimento errático nas bordas
-		if b.position.X < 150 {
-			b.position.X += 6
-		} else if b.position.X > config.ScreenWidth-150 {
-			b.position.X -= 6
-		} else {
-			if int(b.patternTime)%2 == 0 {
-				b.position.X += 6
-			} else {
-				b.position.X -= 6
-			}
+		b.position.X += b.direction * 5
+		if b.position.X < 50 || b.position.X > config.ScreenWidth-50 {
+			b.direction *= -1
 		}
 	case 2:
-		// Rastreamento suave do jogador
 		b.trackingDelay = b.trackingDelay*0.95 + b.playerRef.X*0.05
 		targetX := b.trackingDelay
 		if b.position.X < targetX-5 {
@@ -194,15 +187,13 @@ func (b *Boss) updateSniperMovement() {
 			b.position.X -= 4
 		}
 	case 3:
-		// Movimento em arco na parte superior
-		radius := 180.0
+		radius := 300.0
 		centerX := float64(config.ScreenWidth / 2)
 		offset := math.Cos(b.patternTime*0.8) * radius
-		// Limitar para não sair muito da tela
-		if centerX+offset < 100 {
-			offset = 100 - centerX
-		} else if centerX+offset > config.ScreenWidth-100 {
-			offset = config.ScreenWidth - 100 - centerX
+		if centerX+offset < 60 {
+			offset = 60 - centerX
+		} else if centerX+offset > config.ScreenWidth-60 {
+			offset = config.ScreenWidth - 60 - centerX
 		}
 		b.position.X = centerX + offset
 	}
@@ -211,22 +202,22 @@ func (b *Boss) updateSniperMovement() {
 func (b *Boss) updateSwarmMovement() {
 	switch b.movePattern {
 	case 0:
-		// Movimento sinusoidal médio
-		b.position.X += math.Sin(b.patternTime*0.9) * 3.5
+		b.position.X += b.direction * 2.5
+		b.position.X += math.Sin(b.patternTime*0.9) * 1
+		if b.position.X < 50 || b.position.X > config.ScreenWidth-50 {
+			b.direction *= -1
+		}
 	case 1:
-		// Movimento circular com limites
-		radius := 140.0
+		radius := 280.0
 		centerX := float64(config.ScreenWidth / 2)
 		offset := math.Cos(b.patternTime*0.7) * radius
-		// Limitar movimento
-		if centerX+offset < 120 {
-			offset = 120 - centerX
-		} else if centerX+offset > config.ScreenWidth-120 {
-			offset = config.ScreenWidth - 120 - centerX
+		if centerX+offset < 70 {
+			offset = 70 - centerX
+		} else if centerX+offset > config.ScreenWidth-70 {
+			offset = config.ScreenWidth - 70 - centerX
 		}
 		b.position.X = centerX + offset
 	case 2:
-		// Rastreamento mais agressivo do jogador
 		b.trackingDelay = b.trackingDelay*0.9 + b.playerRef.X*0.1
 		targetX := b.trackingDelay
 		if b.position.X < targetX-10 {
@@ -235,7 +226,6 @@ func (b *Boss) updateSwarmMovement() {
 			b.position.X -= 3
 		}
 	case 3:
-		// Movimento em zig-zag rápido
 		if int(b.patternTime*10)%30 < 15 {
 			b.position.X += 4
 		} else {

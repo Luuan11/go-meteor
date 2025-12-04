@@ -848,7 +848,6 @@ func (g *Game) updateMeteors() {
 	}
 }
 
-// handlePowerUpCollected processa o efeito do power-up coletado
 func (g *Game) handlePowerUpCollected(powerType entities.PowerUpType) {
 	switch powerType {
 	case entities.PowerUpSuperShot:
