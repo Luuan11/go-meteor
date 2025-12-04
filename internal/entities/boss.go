@@ -55,9 +55,15 @@ func NewBoss(bossType config.BossType) *Boss {
 		size = 80
 	}
 
+	// Posição inicial aleatória (esquerda ou direita)
+	startX := float64(config.ScreenWidth) / 4.0
+	if time.Now().UnixNano()%2 == 0 {
+		startX = float64(config.ScreenWidth) * 3.0 / 4.0
+	}
+
 	boss := &Boss{
 		position: systems.Vector{
-			X: config.ScreenWidth / 2,
+			X: startX,
 			Y: -100,
 		},
 		velocity: systems.Vector{
@@ -68,7 +74,7 @@ func NewBoss(bossType config.BossType) *Boss {
 		maxHealth:     health,
 		shootCooldown: shootCooldown,
 		lastShot:      time.Now(),
-		movePattern:   0,
+		movePattern:   int(time.Now().UnixNano() % 4),
 		patternTime:   0,
 		size:          size,
 		sprite:        assets.BossSprite,
@@ -76,7 +82,7 @@ func NewBoss(bossType config.BossType) *Boss {
 		damageFlash:   0,
 		spawnTime:     time.Now(),
 		damageTaken:   0,
-		trackingDelay: 0,
+		trackingDelay: startX,
 	}
 
 	if bossType == config.BossSwarm {
@@ -132,20 +138,30 @@ func (b *Boss) Update() {
 func (b *Boss) updateTankMovement() {
 	switch b.movePattern {
 	case 0:
-		b.position.X += math.Sin(b.patternTime) * 2
+		// Movimento sinusoidal amplo
+		b.position.X += math.Sin(b.patternTime*0.8) * 3
 	case 1:
-		if b.position.X < config.ScreenWidth/2 {
-			b.position.X += 1.5
+		// Movimento para os lados com limites
+		if b.position.X < 150 {
+			b.position.X += 2
+		} else if b.position.X > config.ScreenWidth-150 {
+			b.position.X -= 2
 		} else {
-			b.position.X -= 1.5
+			if b.position.X < config.ScreenWidth/2 {
+				b.position.X += 1.5
+			} else {
+				b.position.X -= 1.5
+			}
 		}
 	case 2:
-		b.position.X += math.Cos(b.patternTime*0.5) * 2.5
+		// Movimento cossenoidal
+		b.position.X += math.Cos(b.patternTime*0.6) * 3.5
 	case 3:
+		// Movimento em zigzag
 		if int(b.patternTime*10)%40 < 20 {
-			b.position.X += 2
+			b.position.X += 2.5
 		} else {
-			b.position.X -= 2
+			b.position.X -= 2.5
 		}
 	}
 }
@@ -153,8 +169,10 @@ func (b *Boss) updateTankMovement() {
 func (b *Boss) updateSniperMovement() {
 	switch b.movePattern {
 	case 0:
+		// Movimento sinusoidal rápido
 		b.position.X += math.Sin(b.patternTime*1.5) * 5
 	case 1:
+		// Movimento errático nas bordas
 		if b.position.X < 150 {
 			b.position.X += 6
 		} else if b.position.X > config.ScreenWidth-150 {
@@ -167,6 +185,7 @@ func (b *Boss) updateSniperMovement() {
 			}
 		}
 	case 2:
+		// Rastreamento suave do jogador
 		b.trackingDelay = b.trackingDelay*0.95 + b.playerRef.X*0.05
 		targetX := b.trackingDelay
 		if b.position.X < targetX-5 {
@@ -175,21 +194,39 @@ func (b *Boss) updateSniperMovement() {
 			b.position.X -= 4
 		}
 	case 3:
-		radius := 150.0
+		// Movimento em arco na parte superior
+		radius := 180.0
 		centerX := float64(config.ScreenWidth / 2)
-		b.position.X = centerX + math.Cos(b.patternTime*0.8)*radius
+		offset := math.Cos(b.patternTime*0.8) * radius
+		// Limitar para não sair muito da tela
+		if centerX+offset < 100 {
+			offset = 100 - centerX
+		} else if centerX+offset > config.ScreenWidth-100 {
+			offset = config.ScreenWidth - 100 - centerX
+		}
+		b.position.X = centerX + offset
 	}
 }
 
 func (b *Boss) updateSwarmMovement() {
 	switch b.movePattern {
 	case 0:
-		b.position.X += math.Sin(b.patternTime) * 3.5
+		// Movimento sinusoidal médio
+		b.position.X += math.Sin(b.patternTime*0.9) * 3.5
 	case 1:
-		radius := 120.0
+		// Movimento circular com limites
+		radius := 140.0
 		centerX := float64(config.ScreenWidth / 2)
-		b.position.X = centerX + math.Cos(b.patternTime)*radius
+		offset := math.Cos(b.patternTime*0.7) * radius
+		// Limitar movimento
+		if centerX+offset < 120 {
+			offset = 120 - centerX
+		} else if centerX+offset > config.ScreenWidth-120 {
+			offset = config.ScreenWidth - 120 - centerX
+		}
+		b.position.X = centerX + offset
 	case 2:
+		// Rastreamento mais agressivo do jogador
 		b.trackingDelay = b.trackingDelay*0.9 + b.playerRef.X*0.1
 		targetX := b.trackingDelay
 		if b.position.X < targetX-10 {
@@ -198,6 +235,7 @@ func (b *Boss) updateSwarmMovement() {
 			b.position.X -= 3
 		}
 	case 3:
+		// Movimento em zig-zag rápido
 		if int(b.patternTime*10)%30 < 15 {
 			b.position.X += 4
 		} else {
