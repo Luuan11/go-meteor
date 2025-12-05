@@ -109,6 +109,7 @@ iframe {
     font-weight: bold;
     font-size: 18px;
     min-width: 30px;
+    font-family: 'Poppins', sans-serif;
 }
 
 .rank-1 .entry-rank { color: #ffd700; }
@@ -127,6 +128,7 @@ iframe {
     font-weight: bold;
     font-size: 16px;
     color: #8f2fe9;
+    font-family: 'Poppins', sans-serif;
 }
 
 .rank-1 .entry-score { color: #ffd700; }
