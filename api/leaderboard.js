@@ -2,6 +2,13 @@ const admin = require('firebase-admin');
 const crypto = require('crypto');
 
 const API_VERSION = '0.2.0';
+const MAX_LEADERBOARD_SIZE = 50;
+const RATE_LIMIT_WINDOW = 5000;
+const RATE_LIMIT_MAP_SIZE = 100;
+const TOKEN_CACHE_SIZE = 1000;
+const SESSION_TIMEOUT = 30 * 60 * 1000;
+const MIN_GAME_TIME = 30;
+const MAX_SCORE = 999999;
 
 let firebaseApp;
 
@@ -91,9 +98,13 @@ function isValidSession(sessionToken) {
   }
   
   const tokenTimestamp = parseInt(parts[0], 10);
+  if (isNaN(tokenTimestamp)) {
+    return false;
+  }
+  
   const currentTime = Date.now();
 
-  if (currentTime - tokenTimestamp > 30 * 60 * 1000) {
+  if (currentTime - tokenTimestamp > SESSION_TIMEOUT) {
     return false;
   }
   
@@ -115,16 +126,20 @@ function validateScore(name, score, sessionToken) {
     return { valid: false, error: 'Invalid name characters' };
   }
   
-  if (typeof score !== 'number' || score < 0 || score > 999999) {
+  if (typeof score !== 'number' || score < 0 || score > MAX_SCORE) {
     return { valid: false, error: 'Invalid score range' };
+  }
+  
+  if (!Number.isInteger(score)) {
+    return { valid: false, error: 'Score must be an integer' };
   }
   
   const tokenTimestamp = parseInt(sessionToken.split('-')[0], 10);
   const currentTime = Date.now();
   const gameTimeSeconds = (currentTime - tokenTimestamp) / 1000;
   
-  if (gameTimeSeconds < 30) {
-    return { valid: false, error: 'Game time too short (minimum 30 seconds)' };
+  if (gameTimeSeconds < MIN_GAME_TIME) {
+    return { valid: false, error: `Game time too short (minimum ${MIN_GAME_TIME} seconds)` };
   }
   
   const baseScorePerSecond = 10;
@@ -145,13 +160,13 @@ function checkRateLimit(ip) {
   const now = Date.now();
   const lastRequest = rateLimitMap.get(ip);
   
-  if (lastRequest && now - lastRequest < 5000) {
+  if (lastRequest && now - lastRequest < RATE_LIMIT_WINDOW) {
     return false;
   }
   
   rateLimitMap.set(ip, now);
   
-  if (rateLimitMap.size > 100) {
+  if (rateLimitMap.size > RATE_LIMIT_MAP_SIZE) {
     const cutoff = now - 60000;
     for (const [key, value] of rateLimitMap.entries()) {
       if (value < cutoff) {
@@ -172,8 +187,8 @@ function isTokenUsed(sessionToken) {
   
   usedTokens.set(sessionToken, now);
   
-  if (usedTokens.size > 1000) {
-    const cutoff = now - 15 * 60 * 1000;
+  if (usedTokens.size > TOKEN_CACHE_SIZE) {
+    const cutoff = now - SESSION_TIMEOUT;
     for (const [key, value] of usedTokens.entries()) {
       if (value < cutoff) {
         usedTokens.delete(key);
@@ -185,20 +200,19 @@ function isTokenUsed(sessionToken) {
 }
 
 export default async function handler(req, res) {
-
   res.setHeader('Access-Control-Allow-Origin', 'https://luuan11.github.io');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('X-API-Version', API_VERSION);
   
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
   
-  const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress;
   
   try {
     if (req.method === 'GET') {
-
       const db = initializeFirebase();
       const snapshot = await db.ref('leaderboard').orderByChild('score').limitToLast(10).once('value');
       
@@ -284,13 +298,12 @@ export default async function handler(req, res) {
         
         allScores.sort((a, b) => b.score - a.score);
         
-        if (allScores.length > 50) {
-          const toDelete = allScores.slice(50);
-          
-          for (const entry of toDelete) {
-            await db.ref('leaderboard').child(entry.key).remove();
-          }
-          
+        if (allScores.length > MAX_LEADERBOARD_SIZE) {
+          const toDelete = allScores.slice(MAX_LEADERBOARD_SIZE);
+          const deletePromises = toDelete.map(entry => 
+            db.ref('leaderboard').child(entry.key).remove()
+          );
+          await Promise.all(deletePromises);
         }
       } catch (cleanupError) {
         console.error('[Cleanup] Error cleaning leaderboard:', cleanupError);
@@ -306,7 +319,7 @@ export default async function handler(req, res) {
     }
     
   } catch (error) {
-    console.error('Error:', error);
+    console.error('[Error]', error.message);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

@@ -10,6 +10,8 @@ type Storage interface {
 	LoadHighScore() int
 	SaveLeaderboard(data string) error
 	LoadLeaderboard() (string, error)
+	SaveProgress(progress *PlayerProgress) error
+	LoadProgress() (*PlayerProgress, error)
 }
 
 type webStorage struct {
@@ -59,4 +61,29 @@ func (s *webStorage) LoadLeaderboard() (string, error) {
 		return "{\"entries\":[]}", nil
 	}
 	return val.String(), nil
+}
+
+func (s *webStorage) SaveProgress(progress *PlayerProgress) error {
+	jsonData, err := progress.ToJSON()
+	if err != nil {
+		return err
+	}
+	s.localStorage.Call("setItem", "spaceGoProgress", jsonData)
+	return nil
+}
+
+func (s *webStorage) LoadProgress() (*PlayerProgress, error) {
+	val := s.localStorage.Call("getItem", "spaceGoProgress")
+	if val.IsNull() {
+		return NewPlayerProgress(), nil
+	}
+	jsonData := val.String()
+	if jsonData == "" {
+		return NewPlayerProgress(), nil
+	}
+	progress, err := PlayerProgressFromJSON(jsonData)
+	if err != nil {
+		return NewPlayerProgress(), nil
+	}
+	return progress, nil
 }

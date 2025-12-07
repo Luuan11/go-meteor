@@ -1,6 +1,8 @@
 package entities
 
 import (
+	"time"
+
 	"github.com/hajimehoshi/ebiten/v2"
 
 	"go-meteor/internal/config"
@@ -24,8 +26,10 @@ type Player struct {
 	shootCooldown      *systems.Timer
 	invincibilityTimer *systems.Timer
 	shieldTimer        *systems.Timer
+	slowedTimer        *systems.Timer
 	isInvincible       bool
 	hasShield          bool
+	isSlowed           bool
 	lives              int
 }
 
@@ -47,21 +51,31 @@ func NewPlayer(game GameInterface) *Player {
 		shootCooldown:      systems.NewTimer(config.PlayerShootCooldown),
 		invincibilityTimer: systems.NewTimer(config.InvincibilityTime),
 		shieldTimer:        systems.NewTimer(config.ShieldTime),
+		slowedTimer:        systems.NewTimer(config.MeteorIceSlowDuration),
 		isInvincible:       false,
 		hasShield:          false,
+		isSlowed:           false,
 		lives:              config.InitialLives,
 	}
 }
 
 func (p *Player) MoveLeft() {
-	p.position.X -= config.PlayerSpeed
+	speed := config.PlayerSpeed
+	if p.isSlowed {
+		speed *= config.MeteorIceSlowFactor
+	}
+	p.position.X -= speed
 	if p.position.X < 0 {
 		p.position.X = 0
 	}
 }
 
 func (p *Player) MoveRight() {
-	p.position.X += config.PlayerSpeed
+	speed := config.PlayerSpeed
+	if p.isSlowed {
+		speed *= config.MeteorIceSlowFactor
+	}
+	p.position.X += speed
 	bounds := p.sprite.Bounds()
 	maxX := float64(config.ScreenWidth) - float64(bounds.Dx())
 	if p.position.X > maxX {
@@ -70,14 +84,22 @@ func (p *Player) MoveRight() {
 }
 
 func (p *Player) MoveUp() {
-	p.position.Y -= config.PlayerSpeed
+	speed := config.PlayerSpeed
+	if p.isSlowed {
+		speed *= config.MeteorIceSlowFactor
+	}
+	p.position.Y -= speed
 	if p.position.Y < 0 {
 		p.position.Y = 0
 	}
 }
 
 func (p *Player) MoveDown() {
-	p.position.Y += config.PlayerSpeed
+	speed := config.PlayerSpeed
+	if p.isSlowed {
+		speed *= config.MeteorIceSlowFactor
+	}
+	p.position.Y += speed
 	bounds := p.sprite.Bounds()
 	maxY := float64(config.ScreenHeight) - float64(bounds.Dy())
 	if p.position.Y > maxY {
@@ -159,6 +181,18 @@ func (p *Player) UpdateTimers() {
 			p.hasShield = false
 		}
 	}
+
+	if p.isSlowed {
+		p.slowedTimer.Update()
+		if p.slowedTimer.IsReady() {
+			p.isSlowed = false
+		}
+	}
+}
+
+func (p *Player) ApplySlow() {
+	p.isSlowed = true
+	p.slowedTimer.Reset()
 }
 
 func (p *Player) Draw(screen *ebiten.Image) {
@@ -166,13 +200,15 @@ func (p *Player) Draw(screen *ebiten.Image) {
 
 	if p.hasShield {
 		if (p.shieldTimer.CurrentTicks()/5)%2 == 0 {
-			op.ColorM.Scale(0.5, 0.7, 1, 1)
+			op.ColorScale.Scale(0.5, 0.7, 1, 1)
 		} else {
-			op.ColorM.Scale(0.6, 0.8, 1, 1)
+			op.ColorScale.Scale(0.6, 0.8, 1, 1)
 		}
+	} else if p.isSlowed {
+		op.ColorScale.Scale(0.6, 0.8, 1.2, 1)
 	} else if p.isInvincible {
 		if (p.invincibilityTimer.CurrentTicks()/5)%2 == 0 {
-			op.ColorM.Scale(1, 0.5, 0.5, 0.7)
+			op.ColorScale.Scale(1, 0.5, 0.5, 0.7)
 		}
 	}
 
@@ -234,6 +270,11 @@ func (p *Player) GainExtraLife() {
 func (p *Player) ActivateShield() {
 	p.hasShield = true
 	p.shieldTimer.Reset()
+}
+
+func (p *Player) ActivateShieldWithDuration(duration time.Duration) {
+	p.hasShield = true
+	p.shieldTimer = systems.NewTimer(duration)
 }
 
 func (p *Player) HasShield() bool {

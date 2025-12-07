@@ -82,7 +82,7 @@ func (n *Notification) Draw(screen *ebiten.Image) {
 
 	bounds := text.BoundString(assets.FontUi, n.message)
 	x := (config.ScreenWidth - bounds.Dx()) / 2
-	text.Draw(screen, n.message, assets.FontUi, x, 150, textColor)
+	text.Draw(screen, n.message, assets.FontUi, x, 80, textColor)
 }
 
 func (n *Notification) IsActive() bool {

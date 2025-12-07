@@ -172,6 +172,10 @@ func (sb *ShootButton) Update(touchIDs []ebiten.TouchID) bool {
 	return pressed
 }
 
+func (sb *ShootButton) IsActive() bool {
+	return sb.isActive
+}
+
 func (sb *ShootButton) Draw(screen *ebiten.Image) {
 	buttonColor := color.RGBA{255, 100, 100, 120}
 	if sb.isActive {

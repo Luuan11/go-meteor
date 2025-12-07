@@ -9,7 +9,7 @@ import (
 	"go-meteor/internal/config"
 )
 
-func DrawPowerUpBar(screen *ebiten.Image, label string, progress float32, barColor color.Color) {
+func DrawPowerUpBar(screen *ebiten.Image, progress float32, barColor color.Color) {
 	DrawPowerUpBarAt(screen, progress, barColor, 100)
 }
 

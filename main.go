@@ -3,12 +3,14 @@ package main
 import (
 	"go-meteor/internal/config"
 	"go-meteor/internal/core"
+	assets "go-meteor/src/pkg"
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
 func main() {
+	assets.InitAudio()
 	g := core.NewGame()
 
 	ebiten.SetWindowSize(config.ScreenWidth, config.ScreenHeight)

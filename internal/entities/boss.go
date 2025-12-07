@@ -37,23 +37,27 @@ func NewBoss(bossType config.BossType) *Boss {
 	var speed float64
 	var shootCooldown time.Duration
 	var size float64
+	var sprite *ebiten.Image
 
 	switch bossType {
 	case config.BossTank:
 		health = config.BossTankHealth
 		speed = config.BossTankSpeed
 		shootCooldown = config.BossTankShootCooldown
-		size = 90
+		size = 120
+		sprite = assets.BossTankSprite
 	case config.BossSniper:
 		health = config.BossSniperHealth
 		speed = config.BossSniperSpeed
 		shootCooldown = config.BossSniperShootCooldown
-		size = 70
+		size = 90
+		sprite = assets.BossSniperSprite
 	case config.BossSwarm:
 		health = config.BossSwarmHealth
 		speed = config.BossSwarmSpeed
 		shootCooldown = config.BossSwarmShootCooldown
-		size = 80
+		size = 100
+		sprite = assets.BossSwarmSprite
 	}
 
 	startX := float64(config.ScreenWidth) / 4.0
@@ -79,7 +83,7 @@ func NewBoss(bossType config.BossType) *Boss {
 		movePattern:   int(time.Now().UnixNano() % 4),
 		patternTime:   0,
 		size:          size,
-		sprite:        assets.BossSprite,
+		sprite:        sprite,
 		bossType:      bossType,
 		damageFlash:   0,
 		spawnTime:     time.Now(),
@@ -88,12 +92,15 @@ func NewBoss(bossType config.BossType) *Boss {
 		direction:     direction,
 	}
 
+	minionCount := config.BossMinionCount
 	if bossType == config.BossSwarm {
-		boss.minions = make([]*Minion, config.BossMinionCount)
-		for i := 0; i < config.BossMinionCount; i++ {
-			angle := float64(i) * (2 * 3.14159 / float64(config.BossMinionCount))
-			boss.minions[i] = NewMinion(boss, angle)
-		}
+		minionCount = config.BossSwarmMinionCount
+	}
+
+	boss.minions = make([]*Minion, minionCount)
+	for i := 0; i < minionCount; i++ {
+		angle := float64(i)
+		boss.minions[i] = NewMinion(boss, angle)
 	}
 
 	return boss

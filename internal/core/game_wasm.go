@@ -129,6 +129,11 @@ func (g *Game) hasNameInputModal() bool {
 }
 
 func (g *Game) initNewGameSession() {
+	g.meteorsDestroyed = 0
+	g.powerUpsCollected = 0
+	g.gameStartTime = time.Now()
+	g.survivalTime = 0
+
 	initFunc := js.Global().Get("initGameSession")
 	if !initFunc.IsUndefined() && !initFunc.IsNull() {
 		initFunc.Invoke()

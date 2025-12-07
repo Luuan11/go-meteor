@@ -21,6 +21,9 @@ var LaserBeamSprite = mustLoadImage("profile/laserbeam_shot.png")
 var GopherPlayer = mustLoadImage("profile/go_player.png")
 var PauseIcon = mustLoadImage("profile/pause_icon.png")
 var BossSprite = mustLoadImage("boss/boss_ship.png")
+var BossTankSprite = mustLoadImage("boss/boss_tank.png")
+var BossSniperSprite = mustLoadImage("boss/boss_sniper.png")
+var BossSwarmSprite = mustLoadImage("boss/boss_swarm.png")
 
 var MeteorSprites = mustLoadImages("meteors/*.png")
 var PlanetsSprites = mustLoadImages("planets/*.png")
@@ -40,12 +43,8 @@ var ClockPowerUpSprite = mustLoadImage("powers/clock.png")
 var LaserPowerUpSprite = mustLoadImage("powers/laser.png")
 var NukePowerUpSprite = mustLoadImage("powers/nuke.png")
 var ExtraLifePowerUpSprite = mustLoadImage("powers/extralife.png")
-
-func PlayShootSound()     {}
-func PlayExplosionSound() {}
-func PlayPowerUpSound()   {}
-func PlayDamageSound()    {}
-func PlayGameOverSound()  {}
+var MultiplierPowerUpSprite = mustLoadImage("powers/multiplier.png")
+var CoinSprite = mustLoadImage("profile/coin.png")
 
 func mustLoadImage(name string) *ebiten.Image {
 	f, err := assets.Open(name)
