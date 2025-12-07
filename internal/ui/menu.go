@@ -105,7 +105,7 @@ func (m *Menu) drawButton(screen *ebiten.Image, btn *IconButton) {
 func (m *Menu) drawShopButton(screen *ebiten.Image) {
 	btn := m.shopButton
 	mouseX, mouseY := ebiten.CursorPosition()
-	
+
 	// Check if mouse is hovering over button area (icon + text)
 	textWidth := 70 // Approximate width for icon + "Shop" text
 	isHovered := float64(mouseX) >= btn.x && float64(mouseX) <= btn.x+float64(textWidth) &&
@@ -139,7 +139,7 @@ func (m *Menu) Update() {
 
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		mouseX, mouseY := ebiten.CursorPosition()
-		
+
 		// Check settings button
 		btn := m.settingsButton
 		if float64(mouseX) >= btn.x && float64(mouseX) <= btn.x+btn.size &&
@@ -147,7 +147,7 @@ func (m *Menu) Update() {
 			m.openSettings = true
 			return
 		}
-		
+
 		// Check shop button (icon + text area)
 		shopBtn := m.shopButton
 		textWidth := 70.0 // Approximate width for icon + "Shop" text
@@ -156,7 +156,7 @@ func (m *Menu) Update() {
 			m.openShop = true
 			return
 		}
-		
+
 		m.readyToPlay = true
 	}
 

@@ -151,14 +151,14 @@ func (pm *PauseMenu) Update() int {
 
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		mouseX, mouseY := ebiten.CursorPosition()
-		
+
 		// Check settings button
 		btn := pm.settingsButton
 		if float64(mouseX) >= btn.x && float64(mouseX) <= btn.x+btn.size &&
 			float64(mouseY) >= btn.y && float64(mouseY) <= btn.y+btn.size {
 			return PauseActionSettings
 		}
-		
+
 		// Check shop button
 		shopBtn := pm.shopButton
 		if float64(mouseX) >= shopBtn.x && float64(mouseX) <= shopBtn.x+shopBtn.size &&

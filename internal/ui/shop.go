@@ -22,12 +22,12 @@ const (
 
 // Shop UI colors
 var (
-	colorUpgradePreview   = color.RGBA{100, 255, 150, 255}
-	colorMaxLevel         = color.RGBA{255, 215, 0, 255}
-	colorDescription      = color.RGBA{255, 200, 100, 255}
-	colorSelectedItemBg   = color.RGBA{60, 60, 100, 230}
-	colorUpgradeSuccess   = color.RGBA{0, 200, 0, 230}
-	colorHintBackground   = color.RGBA{20, 20, 40, 230}
+	colorUpgradePreview = color.RGBA{100, 255, 150, 255}
+	colorMaxLevel       = color.RGBA{255, 215, 0, 255}
+	colorDescription    = color.RGBA{255, 200, 100, 255}
+	colorSelectedItemBg = color.RGBA{60, 60, 100, 230}
+	colorUpgradeSuccess = color.RGBA{0, 200, 0, 230}
+	colorHintBackground = color.RGBA{20, 20, 40, 230}
 )
 
 type ShopAction int
