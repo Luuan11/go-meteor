@@ -19,6 +19,7 @@ const (
 	PowerUpLaser
 	PowerUpNuke
 	PowerUpExtraLife
+	PowerUpMultiplier
 )
 
 type PowerUp struct {
@@ -85,6 +86,8 @@ func (p *PowerUp) Reset() {
 		p.sprite = assets.LaserPowerUpSprite
 	case PowerUpNuke:
 		p.sprite = assets.NukePowerUpSprite
+	case PowerUpMultiplier:
+		p.sprite = assets.MultiplierPowerUpSprite
 	default:
 		p.sprite = assets.PowerUpSprites
 	}
@@ -146,6 +149,8 @@ func NewPowerUpWithType(powerType PowerUpType) *PowerUp {
 		sprite = assets.NukePowerUpSprite
 	case PowerUpExtraLife:
 		sprite = assets.ExtraLifePowerUpSprite
+	case PowerUpMultiplier:
+		sprite = assets.MultiplierPowerUpSprite
 	default:
 		sprite = assets.PowerUpSprites
 	}
