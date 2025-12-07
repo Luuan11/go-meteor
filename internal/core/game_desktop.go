@@ -3,6 +3,8 @@
 
 package core
 
+import "time"
+
 func (g *Game) notifyWebLeaderboard(_ string, _ int) {
 }
 
@@ -14,4 +16,8 @@ func (g *Game) hasNameInputModal() bool {
 }
 
 func (g *Game) initNewGameSession() {
+	g.meteorsDestroyed = 0
+	g.powerUpsCollected = 0
+	g.gameStartTime = time.Now()
+	g.survivalTime = 0
 }

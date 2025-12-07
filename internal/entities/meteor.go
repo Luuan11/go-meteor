@@ -9,12 +9,21 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
+type MeteorType int
+
+const (
+	MeteorNormal MeteorType = iota
+	MeteorIce
+	MeteorExplosive
+)
+
 type Meteor struct {
 	position      systems.Vector
 	rotation      float64
 	movement      systems.Vector
 	rotationSpeed float64
 	sprite        *ebiten.Image
+	meteorType    MeteorType
 }
 
 func NewMeteor(speedMultiplier float64) *Meteor {
@@ -23,7 +32,20 @@ func NewMeteor(speedMultiplier float64) *Meteor {
 		Y: -100,
 	}
 
+	meteorType := MeteorNormal
+	roll := rand.Float64()
+	if roll < config.MeteorIceSpawnChance {
+		meteorType = MeteorIce
+	} else if roll < config.MeteorIceSpawnChance+config.MeteorExplosiveSpawnChance {
+		meteorType = MeteorExplosive
+	}
+
 	velocity := config.MeteorMinSpeed + rand.Float64()*(config.MeteorMaxSpeed-config.MeteorMinSpeed)
+
+	if meteorType == MeteorExplosive {
+		velocity = config.MeteorExplosiveSpeed
+	}
+
 	velocity *= speedMultiplier
 
 	movement := systems.Vector{
@@ -38,6 +60,7 @@ func NewMeteor(speedMultiplier float64) *Meteor {
 		movement:      movement,
 		rotationSpeed: config.MeteorRotationMin + rand.Float64()*(config.MeteorRotationMax-config.MeteorRotationMin),
 		sprite:        sprite,
+		meteorType:    meteorType,
 	}
 	return m
 }
@@ -48,7 +71,20 @@ func (m *Meteor) Reset(speedMultiplier float64) {
 		Y: -100,
 	}
 
+	m.meteorType = MeteorNormal
+	roll := rand.Float64()
+	if roll < config.MeteorIceSpawnChance {
+		m.meteorType = MeteorIce
+	} else if roll < config.MeteorIceSpawnChance+config.MeteorExplosiveSpawnChance {
+		m.meteorType = MeteorExplosive
+	}
+
 	velocity := config.MeteorMinSpeed + rand.Float64()*(config.MeteorMaxSpeed-config.MeteorMinSpeed)
+
+	if m.meteorType == MeteorExplosive {
+		velocity = config.MeteorExplosiveSpeed
+	}
+
 	velocity *= speedMultiplier
 
 	m.movement = systems.Vector{
@@ -80,7 +116,21 @@ func (m *Meteor) Draw(screen *ebiten.Image) {
 
 	op.GeoM.Translate(m.position.X, m.position.Y)
 
+	// Apply color tint based on meteor type
+	switch m.meteorType {
+	case MeteorIce:
+		// Blue/cyan tint for ice meteors
+		op.ColorScale.Scale(0.7, 0.9, 1.2, 1.0)
+	case MeteorExplosive:
+		// Red/orange tint for explosive meteors
+		op.ColorScale.Scale(1.3, 0.7, 0.5, 1.0)
+	}
+
 	screen.DrawImage(m.sprite, op)
+}
+
+func (m *Meteor) GetType() MeteorType {
+	return m.meteorType
 }
 
 func (m *Meteor) Collider() systems.Rect {

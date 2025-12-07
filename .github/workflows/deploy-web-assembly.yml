@@ -73,7 +73,14 @@ jobs:
           GOOS=js GOARCH=wasm go build -v -ldflags="-s -w" -o web/go-meteor.wasm .
         
       - name: Copy wasm_exec.js
-        run: cp $(go env GOROOT)/misc/wasm/wasm_exec.js web/
+        run: |
+          GOROOT=$(go env GOROOT)
+          if [ -f "$GOROOT/misc/wasm/wasm_exec.js" ]; then
+            cp "$GOROOT/misc/wasm/wasm_exec.js" web/
+          else
+            echo "Downloading wasm_exec.js from Go repository..."
+            curl -o web/wasm_exec.js https://raw.githubusercontent.com/golang/go/release-branch.go1.22/misc/wasm/wasm_exec.js
+          fi
 
       - name: List web directory
         run: ls -lah web/

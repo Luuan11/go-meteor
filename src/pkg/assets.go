@@ -2,10 +2,10 @@ package assets
 
 import (
 	"embed"
-	"fmt"
 	"image"
 	_ "image/png"
 	"io/fs"
+	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"golang.org/x/image/font"
@@ -21,6 +21,9 @@ var LaserBeamSprite = mustLoadImage("profile/laserbeam_shot.png")
 var GopherPlayer = mustLoadImage("profile/go_player.png")
 var PauseIcon = mustLoadImage("profile/pause_icon.png")
 var BossSprite = mustLoadImage("boss/boss_ship.png")
+var BossTankSprite = mustLoadImage("boss/boss_tank.png")
+var BossSniperSprite = mustLoadImage("boss/boss_sniper.png")
+var BossSwarmSprite = mustLoadImage("boss/boss_swarm.png")
 
 var MeteorSprites = mustLoadImages("meteors/*.png")
 var PlanetsSprites = mustLoadImages("planets/*.png")
@@ -40,17 +43,13 @@ var ClockPowerUpSprite = mustLoadImage("powers/clock.png")
 var LaserPowerUpSprite = mustLoadImage("powers/laser.png")
 var NukePowerUpSprite = mustLoadImage("powers/nuke.png")
 var ExtraLifePowerUpSprite = mustLoadImage("powers/extralife.png")
-
-func PlayShootSound()     {}
-func PlayExplosionSound() {}
-func PlayPowerUpSound()   {}
-func PlayDamageSound()    {}
-func PlayGameOverSound()  {}
+var MultiplierPowerUpSprite = mustLoadImage("powers/multiplier.png")
+var CoinSprite = mustLoadImage("profile/coin.png")
 
 func mustLoadImage(name string) *ebiten.Image {
 	f, err := assets.Open(name)
 	if err != nil {
-		fmt.Println("Error loading image", err)
+		log.Printf("Error loading image %s: %v", name, err)
 		panic(err)
 	}
 
@@ -58,7 +57,7 @@ func mustLoadImage(name string) *ebiten.Image {
 
 	img, _, err := image.Decode(f)
 	if err != nil {
-		fmt.Println("Error loading image", err)
+		log.Printf("Error decoding image %s: %v", name, err)
 		panic(err)
 	}
 
@@ -68,7 +67,7 @@ func mustLoadImage(name string) *ebiten.Image {
 func mustLoadImages(path string) []*ebiten.Image {
 	matches, err := fs.Glob(assets, path)
 	if err != nil {
-		fmt.Println("Error loading images", err)
+		log.Printf("Error loading images from %s: %v", path, err)
 		panic(err)
 	}
 
@@ -83,13 +82,13 @@ func mustLoadImages(path string) []*ebiten.Image {
 func mustLoadFont(name string, size float64) font.Face {
 	f, err := assets.ReadFile(name)
 	if err != nil {
-		fmt.Println("Error loading font", err)
+		log.Printf("Error loading font %s: %v", name, err)
 		panic(err)
 	}
 
 	tt, err := opentype.Parse(f)
 	if err != nil {
-		fmt.Println("Error parsing font", err)
+		log.Printf("Error parsing font %s: %v", name, err)
 		panic(err)
 	}
 
@@ -99,7 +98,7 @@ func mustLoadFont(name string, size float64) font.Face {
 		Hinting: font.HintingFull,
 	})
 	if err != nil {
-		fmt.Println("Error creating font face", err)
+		log.Printf("Error creating font face for %s: %v", name, err)
 		panic(err)
 	}
 

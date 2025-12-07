@@ -12,25 +12,7 @@
     <script src="assets/js/name-input-modal.js"></script>
 </head>
 <body>
-    <audio id="bgMusic" loop preload="auto">
-        <source src="assets/sounds/music.mp3" type="audio/mpeg">
-    </audio>
-
-    <script src="assets/js/music.js"></script>
-
     <div class="main-container">
-        <div class="game-container">
-            <iframe src="main.html" width="800" height="600"></iframe>
-            
-            <!-- Leaderboard Panel -->
-            <div class="leaderboard-panel">
-                <h2 class="leaderboard-title">TOP 10</h2>
-                <div class="leaderboard-content" id="leaderboard-entries">
-                    <p class="loading">Loading...</p>
-                </div>
-            </div>
-        </div>
-
         <div class="tutorial">
             <h2>Tutorial</h2>
             <p><strong>Shoot:</strong> Press the <kbd>SPACE</kbd> key.</p>
@@ -48,6 +30,19 @@
             <p><strong>Laser Beam:</strong> Powerful penetrating shots 3x damage (Wave 5+)</p>
             <p><strong>Nuke:</strong> Clears screen for 5s keeping combo (Wave 5+)</p>
             <p><strong>Extra Life:</strong> Grants 1 extra life, max 5 hearts (Wave 5+)</p>
+            <p><strong>Multiplier:</strong> Score x2 for 20 seconds (Wave 5+)</p>
+        </div>
+
+        <div class="game-container">
+            <iframe src="main.html" width="800" height="600"></iframe>
+            
+            <!-- Leaderboard Panel -->
+            <div class="leaderboard-panel">
+                <h2 class="leaderboard-title">TOP 10</h2>
+                <div class="leaderboard-content" id="leaderboard-entries">
+                    <p class="loading">Loading...</p>
+                </div>
+            </div>
         </div>
     </div>
 
