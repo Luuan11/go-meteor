@@ -7,7 +7,11 @@ const (
 	StatePlaying
 	StatePaused
 	StateGameOver
+	StateShop
+	StateSettings
+	StateBossAnnouncement
 	StateBossFight
+	StatePlayerDeath
 	StateWaitingNameInput
 )
 
