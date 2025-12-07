@@ -55,6 +55,15 @@ func (g *Game) updateBossAnnouncement() error {
 		p.Update()
 	}
 
+	// Atualiza power-ups e coins para não travarem
+	for _, pu := range g.powerUps {
+		pu.Update()
+	}
+
+	for _, c := range g.coins {
+		c.Update()
+	}
+
 	g.cleanObjects()
 
 	g.player.Update()

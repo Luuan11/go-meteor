@@ -100,8 +100,8 @@ func (g *Game) updatePlaying() error {
 	g.notification.Update()
 
 	speedMultiplier := 1.0
-	if g.wave >= 15 {
-		speedMultiplier = 1.0 + float64(g.wave-15)*config.WaveDifficultyFactor
+	if g.wave >= 20 {
+		speedMultiplier = 1.0 + float64(g.wave-20)*config.WaveDifficultyFactor
 	}
 	meteorsPerWave := max(config.MeteorsPerWaveOffset, config.MeteorsPerWaveOffset+(g.wave-1)/config.WaveMeteoIncrement)
 
@@ -210,6 +210,7 @@ func (g *Game) updatePaused() error {
 
 func (g *Game) updateGameOver() error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyS) {
+		g.stateBeforePause = config.StateGameOver
 		g.shop.SetProgress(g.progress)
 		g.state = config.StateShop
 		return nil
@@ -252,6 +253,7 @@ func (g *Game) updateGameOver() error {
 			shopButtonY := 535
 
 			if x >= shopButtonX && x <= shopButtonX+180 && y >= shopButtonY && y <= shopButtonY+40 {
+				g.stateBeforePause = config.StateGameOver
 				g.shop.SetProgress(g.progress)
 				g.state = config.StateShop
 				return nil

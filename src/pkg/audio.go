@@ -4,11 +4,8 @@ import (
 	"bytes"
 	"io"
 	"log"
-	"path/filepath"
-	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2/audio"
-	"github.com/hajimehoshi/ebiten/v2/audio/mp3"
 	"github.com/hajimehoshi/ebiten/v2/audio/wav"
 )
 
@@ -26,9 +23,9 @@ var (
 
 	musicPlayer *audio.Player
 
-	masterVolume = 0.5
-	sfxVolume    = 0.5
-	musicVolume  = 0.5
+	masterVolume = 0.7
+	sfxVolume    = 0.7
+	musicVolume  = 0.4
 	musicEnabled = true
 	sfxEnabled   = true
 )
@@ -85,18 +82,7 @@ func loadSoundBytes(path string) []byte {
 	}
 	defer soundFile.Close()
 
-	var decoded io.Reader
-	ext := filepath.Ext(path)
-
-	switch strings.ToLower(ext) {
-	case ".wav":
-		decoded, err = wav.DecodeWithSampleRate(sampleRate, soundFile)
-	case ".mp3":
-		decoded, err = mp3.DecodeWithSampleRate(sampleRate, soundFile)
-	default:
-		decoded, err = mp3.DecodeWithSampleRate(sampleRate, soundFile)
-	}
-
+	decoded, err := wav.DecodeWithSampleRate(sampleRate, soundFile)
 	if err != nil {
 		log.Printf("Warning: Could not decode sound %s: %v", path, err)
 		return nil
