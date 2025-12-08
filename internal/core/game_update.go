@@ -9,7 +9,6 @@ import (
 	"go-meteor/internal/entities"
 	"go-meteor/internal/systems"
 	"go-meteor/internal/ui"
-	assets "go-meteor/src/pkg"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -314,7 +313,6 @@ func (g *Game) updateSettings() error {
 			g.stateBeforePause = 0
 		} else {
 			g.state = config.StateMenu
-			assets.ResumeMusic()
 		}
 	}
 
@@ -324,7 +322,6 @@ func (g *Game) updateSettings() error {
 func (g *Game) updatePlayerDeath() error {
 	g.playerDeathTimer++
 
-	// Create explosion particles continuously
 	if g.playerDeathTimer%5 == 0 {
 		for i := 0; i < 3; i++ {
 			g.createExplosion(
@@ -337,7 +334,6 @@ func (g *Game) updatePlayerDeath() error {
 		}
 	}
 
-	// After animation duration, proceed to game over
 	if g.playerDeathTimer >= config.PlayerDeathAnimationDuration {
 		g.survivalTime = time.Since(g.gameStartTime)
 		g.statistics = ui.NewStatistics(g.meteorsDestroyed, g.powerUpsCollected, g.wave, g.score, g.survivalTime)

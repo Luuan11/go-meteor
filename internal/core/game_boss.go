@@ -42,7 +42,6 @@ func (g *Game) updateBossAnnouncement() error {
 	}
 	g.cleanStars()
 
-	// Atualiza meteoros durante anúncio para não travarem
 	for _, m := range g.meteors {
 		m.Update()
 	}
@@ -55,7 +54,6 @@ func (g *Game) updateBossAnnouncement() error {
 		p.Update()
 	}
 
-	// Atualiza power-ups e coins para não travarem
 	for _, pu := range g.powerUps {
 		pu.Update()
 	}
@@ -106,13 +104,11 @@ func (g *Game) updateBossFight() error {
 			g.boss.Update()
 		}
 
-		// Atualiza e faz minions atirarem
 		for _, minion := range g.boss.GetMinions() {
 			if minion != nil {
 				minion.SetTarget(systems.Vector{X: playerPos.X, Y: playerPos.Y})
 				minion.Update()
 
-				// Minion atira
 				if minion.CanShoot() {
 					minion.Shoot()
 					minionPos := minion.GetPosition()
@@ -192,7 +188,6 @@ func (g *Game) checkBossCollisions() {
 		return
 	}
 
-	// Laser-Boss collisions
 	for i := len(g.lasers) - 1; i >= 0; i-- {
 		if g.lasers[i].Collider().Intersects(g.boss.Collider()) {
 			damage := g.lasers[i].GetDamage()
@@ -215,7 +210,6 @@ func (g *Game) checkBossCollisions() {
 			continue
 		}
 
-		// Laser-Minion collisions (todos os bosses agora têm minions)
 		for mIdx, minion := range g.boss.GetMinions() {
 			if minion != nil && g.lasers[i].Collider().Intersects(minion.Collider()) {
 				damage := g.lasers[i].GetDamage()
@@ -239,7 +233,6 @@ func (g *Game) checkBossCollisions() {
 		}
 	}
 
-	// PowerUp-Player collisions
 	for i := len(g.powerUps) - 1; i >= 0; i-- {
 		if g.powerUps[i].Collider().Intersects(g.player.Collider()) {
 			powerType := g.powerUps[i].GetType()
@@ -270,13 +263,10 @@ func (g *Game) checkBossCollisions() {
 		}
 	}
 
-	// Minion-Player collision
 	for mIdx, minion := range g.boss.GetMinions() {
 		if minion != nil && minion.Collider().Intersects(g.player.Collider()) {
 			isDead := g.player.TakeDamage()
 			g.bossNoDamage = false
-
-			// Minion também morre ao colidir
 			g.createExplosion(minion.GetPosition(), config.MinionParticles)
 			g.boss.RemoveMinion(mIdx)
 			assets.PlayExplosionSound()
@@ -334,7 +324,6 @@ func (g *Game) defeatBoss() {
 	g.bossCooldownTimer.Reset()
 	g.powerUpSpawnTimer = systems.NewTimer(config.PowerUpSpawnTime)
 
-	// Activate post-boss invincibility
 	g.isPostBossInvincible = true
 	g.postBossInvincibilityTimer.Reset()
 	g.notification.Show("INVINCIBLE!", ui.NotificationShield)

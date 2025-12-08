@@ -26,6 +26,12 @@ func (g *Game) updateAndSpawn(timer *systems.Timer, spawnFunc func()) {
 }
 
 func (g *Game) createExplosion(pos systems.Vector, count int) {
+	if g.isMobile {
+		count = count / 2
+		if count < 3 {
+			count = 3
+		}
+	}
 	for i := 0; i < count; i++ {
 		g.particles = append(g.particles, effects.NewParticle(pos))
 	}
@@ -234,7 +240,6 @@ func (g *Game) handleGameOver() bool {
 	)
 	g.screenShake = config.ScreenShakeBossDefeat
 
-	assets.PauseMusic()
 	assets.PlayExplosionSound()
 	assets.PlayGameOverSound()
 

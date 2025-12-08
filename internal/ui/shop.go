@@ -27,7 +27,26 @@ var (
 	colorSelectedItemBg = color.RGBA{60, 60, 100, 230}
 	colorUpgradeSuccess = color.RGBA{0, 200, 0, 230}
 	colorHintBackground = color.RGBA{20, 20, 40, 230}
+
+	shopOverlay      *ebiten.Image
+	shopHintBg       *ebiten.Image
+	dialogOverlay    *ebiten.Image
+	upgradeSuccessBg *ebiten.Image
 )
+
+func init() {
+	shopOverlay = ebiten.NewImage(config.ScreenWidth, config.ScreenHeight)
+	shopOverlay.Fill(color.RGBA{0, 0, 0, 220})
+
+	shopHintBg = ebiten.NewImage(config.ScreenWidth, 25)
+	shopHintBg.Fill(colorHintBackground)
+
+	dialogOverlay = ebiten.NewImage(config.ScreenWidth, config.ScreenHeight)
+	dialogOverlay.Fill(color.RGBA{0, 0, 0, 180})
+
+	upgradeSuccessBg = ebiten.NewImage(180, 35)
+	upgradeSuccessBg.Fill(colorUpgradeSuccess)
+}
 
 type ShopAction int
 
@@ -50,16 +69,20 @@ type ShopItem struct {
 }
 
 type Shop struct {
-	Items           []ShopItem
-	selectedIndex   int
-	scrollOffset    int
-	maxVisibleItems int
-	coins           int
-	action          ShopAction
-	upgradeType     string
-	showUpgradeMsg  bool
-	msgTimer        int
-	isMobile        bool
+	Items             []ShopItem
+	selectedIndex     int
+	scrollOffset      int
+	maxVisibleItems   int
+	coins             int
+	action            ShopAction
+	upgradeType       string
+	showUpgradeMsg    bool
+	msgTimer          int
+	isMobile          bool
+	showConfirmation  bool
+	confirmationItem  int
+	confirmationCost  int
+	confirmationPower string
 }
 
 func NewShop() *Shop {
@@ -139,6 +162,43 @@ func (s *Shop) Update() ShopAction {
 		}
 	}
 
+	if s.showConfirmation {
+		handleConfirmClick := func(clickX, clickY int) {
+			if clickX >= config.ScreenWidth/2-110 && clickX <= config.ScreenWidth/2-10 &&
+				clickY >= config.ScreenHeight/2+20 && clickY <= config.ScreenHeight/2+60 {
+				s.action = ShopActionUpgrade
+				s.upgradeType = s.confirmationPower
+				s.showUpgradeMsg = true
+				s.msgTimer = 60
+				s.showConfirmation = false
+				return
+			}
+			// Cancel button
+			if clickX >= config.ScreenWidth/2+10 && clickX <= config.ScreenWidth/2+110 &&
+				clickY >= config.ScreenHeight/2+20 && clickY <= config.ScreenHeight/2+60 {
+				s.showConfirmation = false
+				return
+			}
+		}
+
+		if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+			mouseX, mouseY := ebiten.CursorPosition()
+			handleConfirmClick(mouseX, mouseY)
+		}
+
+		touchIDs := inpututil.AppendJustPressedTouchIDs(nil)
+		if len(touchIDs) > 0 {
+			touchX, touchY := ebiten.TouchPosition(touchIDs[0])
+			handleConfirmClick(touchX, touchY)
+		}
+
+		if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
+			s.showConfirmation = false
+		}
+
+		return s.action
+	}
+
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 		s.action = ShopActionClose
 		return s.action
@@ -164,29 +224,18 @@ func (s *Shop) Update() ShopAction {
 		if s.selectedIndex >= 0 && s.selectedIndex < len(s.Items) {
 			item := s.Items[s.selectedIndex]
 			if item.Level < item.MaxLevel && s.coins >= item.NextCost {
-				s.action = ShopActionUpgrade
-				s.upgradeType = item.PowerType
-				s.showUpgradeMsg = true
-				s.msgTimer = 60
-				return s.action
+				s.showConfirmation = true
+				s.confirmationItem = s.selectedIndex
+				s.confirmationCost = item.NextCost
+				s.confirmationPower = item.PowerType
 			}
 		}
 	}
 
 	handleClick := func(clickX, clickY int) {
-		if s.isMobile {
-			// Back button (top-left)
-			if clickX >= 10 && clickX <= 50 && clickY >= 10 && clickY <= 50 {
-				s.action = ShopActionClose
-				return
-			}
-		} else {
-			// Close button (top-right X)
-			if clickX >= config.ScreenWidth-50 && clickX <= config.ScreenWidth-10 &&
-				clickY >= 10 && clickY <= 50 {
-				s.action = ShopActionClose
-				return
-			}
+		if clickX >= 10 && clickX <= 50 && clickY >= 10 && clickY <= 50 {
+			s.action = ShopActionClose
+			return
 		}
 
 		startY := 95
@@ -209,10 +258,10 @@ func (s *Shop) Update() ShopAction {
 				s.selectedIndex = i
 				item := s.Items[i]
 				if item.Level < item.MaxLevel && s.coins >= item.NextCost {
-					s.action = ShopActionUpgrade
-					s.upgradeType = item.PowerType
-					s.showUpgradeMsg = true
-					s.msgTimer = 60
+					s.showConfirmation = true
+					s.confirmationItem = i
+					s.confirmationCost = item.NextCost
+					s.confirmationPower = item.PowerType
 					return
 				}
 				break
@@ -258,9 +307,7 @@ func (s *Shop) updateScroll() {
 }
 
 func (s *Shop) Draw(screen *ebiten.Image) {
-	overlay := ebiten.NewImage(config.ScreenWidth, config.ScreenHeight)
-	overlay.Fill(color.RGBA{0, 0, 0, 220})
-	screen.DrawImage(overlay, nil)
+	screen.DrawImage(shopOverlay, nil)
 
 	titleText := "SHOP"
 	titleX := (config.ScreenWidth - measureText(titleText, assets.FontUi)) / 2
@@ -287,7 +334,6 @@ func (s *Shop) Draw(screen *ebiten.Image) {
 		displayIndex := i - s.scrollOffset
 		y := startY + displayIndex*itemHeight
 
-		// Reduce width to 80% and center for all platforms
 		itemWidth := int(float64(config.ScreenWidth) * 0.8)
 		itemStartX := (config.ScreenWidth - itemWidth) / 2
 
@@ -362,22 +408,18 @@ func (s *Shop) Draw(screen *ebiten.Image) {
 	}
 
 	if s.showUpgradeMsg {
-		msgBg := ebiten.NewImage(180, 35)
-		msgBg.Fill(colorUpgradeSuccess)
 		msgBgOp := &ebiten.DrawImageOptions{}
 		msgBgOp.GeoM.Translate(float64((config.ScreenWidth-180)/2), float64(config.ScreenHeight-75))
-		screen.DrawImage(msgBg, msgBgOp)
+		screen.DrawImage(upgradeSuccessBg, msgBgOp)
 
 		msgText := "UPGRADED!"
 		msgX := (config.ScreenWidth - measureText(msgText, assets.FontSmall)) / 2
 		drawText(screen, msgText, assets.FontSmall, msgX, config.ScreenHeight-60, color.White)
 	}
 
-	hintBg := ebiten.NewImage(config.ScreenWidth, 25)
-	hintBg.Fill(colorHintBackground)
 	hintBgOp := &ebiten.DrawImageOptions{}
 	hintBgOp.GeoM.Translate(0, float64(config.ScreenHeight-32))
-	screen.DrawImage(hintBg, hintBgOp)
+	screen.DrawImage(shopHintBg, hintBgOp)
 
 	hintText := "ENTER: Buy  |  ESC: Close  "
 	if s.isMobile {
@@ -386,34 +428,87 @@ func (s *Shop) Draw(screen *ebiten.Image) {
 	hintX := (config.ScreenWidth - measureText(hintText, assets.FontSmall)) / 2
 	drawText(screen, hintText, assets.FontSmall, hintX, config.ScreenHeight-22, color.RGBA{200, 200, 200, 255})
 
-	if s.isMobile {
-		s.drawBackButton(screen)
-	} else {
-		s.drawCloseButton(screen)
-	}
+	s.drawBackButton(screen)
 
 	if len(s.Items) > s.maxVisibleItems {
 		s.drawScrollButtons(screen)
 	}
+
+	if s.showConfirmation {
+		s.drawConfirmationDialog(screen)
+	}
 }
 
-func (s *Shop) drawCloseButton(screen *ebiten.Image) {
-	mouseX, mouseY := ebiten.CursorPosition()
-	isHovered := mouseX >= config.ScreenWidth-50 && mouseX <= config.ScreenWidth-10 &&
-		mouseY >= 10 && mouseY <= 50
+func (s *Shop) drawConfirmationDialog(screen *ebiten.Image) {
+	// Semi-transparent overlay
+	screen.DrawImage(dialogOverlay, nil)
 
-	btnColor := color.RGBA{200, 50, 50, 180}
-	if isHovered {
-		btnColor = color.RGBA{255, 80, 80, 220}
+	// Dialog box
+	dialogW, dialogH := 400, 200
+	dialogX := (config.ScreenWidth - dialogW) / 2
+	dialogY := (config.ScreenHeight - dialogH) / 2
+
+	dialog := ebiten.NewImage(dialogW, dialogH)
+	dialog.Fill(color.RGBA{30, 30, 50, 255})
+	dialogOp := &ebiten.DrawImageOptions{}
+	dialogOp.GeoM.Translate(float64(dialogX), float64(dialogY))
+	screen.DrawImage(dialog, dialogOp)
+
+	// Border
+	border := ebiten.NewImage(dialogW-4, dialogH-4)
+	border.Fill(color.RGBA{100, 100, 150, 255})
+	borderOp := &ebiten.DrawImageOptions{}
+	borderOp.GeoM.Translate(float64(dialogX+2), float64(dialogY+2))
+	screen.DrawImage(border, borderOp)
+
+	innerDialog := ebiten.NewImage(dialogW-8, dialogH-8)
+	innerDialog.Fill(color.RGBA{30, 30, 50, 255})
+	innerDialogOp := &ebiten.DrawImageOptions{}
+	innerDialogOp.GeoM.Translate(float64(dialogX+4), float64(dialogY+4))
+	screen.DrawImage(innerDialog, innerDialogOp)
+
+	// Title
+	titleText := "CONFIRM PURCHASE"
+	titleX := dialogX + (dialogW-measureText(titleText, assets.FontSmall))/2
+	drawText(screen, titleText, assets.FontSmall, titleX, dialogY+30, color.RGBA{255, 215, 0, 255})
+
+	// Item info
+	if s.confirmationItem >= 0 && s.confirmationItem < len(s.Items) {
+		item := s.Items[s.confirmationItem]
+		itemText := fmt.Sprintf("%s (Lv %d -> %d)", item.Name, item.Level, item.Level+1)
+		itemX := dialogX + (dialogW-measureText(itemText, assets.FontSmall))/2
+		drawText(screen, itemText, assets.FontSmall, itemX, dialogY+70, color.White)
+
+		costText := fmt.Sprintf("Cost: %d coins", s.confirmationCost)
+		costX := dialogX + (dialogW-measureText(costText, assets.FontSmall))/2
+		drawText(screen, costText, assets.FontSmall, costX, dialogY+100, color.RGBA{255, 215, 0, 255})
 	}
 
-	closeBtn := ebiten.NewImage(40, 40)
-	closeBtn.Fill(btnColor)
-	closeBtnOp := &ebiten.DrawImageOptions{}
-	closeBtnOp.GeoM.Translate(float64(config.ScreenWidth-50), 10)
-	screen.DrawImage(closeBtn, closeBtnOp)
+	// Buttons
+	btnW, btnH := 100, 40
+	confirmX := dialogX + dialogW/2 - btnW - 10
+	cancelX := dialogX + dialogW/2 + 10
+	btnY := dialogY + dialogH - 60
 
-	drawText(screen, "X", assets.FontSmall, config.ScreenWidth-35, 33, color.White)
+	// Confirm button
+	confirmBtn := ebiten.NewImage(btnW, btnH)
+	confirmBtn.Fill(color.RGBA{50, 200, 50, 220})
+	confirmBtnOp := &ebiten.DrawImageOptions{}
+	confirmBtnOp.GeoM.Translate(float64(confirmX), float64(btnY))
+	screen.DrawImage(confirmBtn, confirmBtnOp)
+	confirmText := "YES"
+	confirmTextX := confirmX + (btnW-measureText(confirmText, assets.FontSmall))/2
+	drawText(screen, confirmText, assets.FontSmall, confirmTextX, btnY+25, color.White)
+
+	// Cancel button
+	cancelBtn := ebiten.NewImage(btnW, btnH)
+	cancelBtn.Fill(color.RGBA{200, 50, 50, 220})
+	cancelBtnOp := &ebiten.DrawImageOptions{}
+	cancelBtnOp.GeoM.Translate(float64(cancelX), float64(btnY))
+	screen.DrawImage(cancelBtn, cancelBtnOp)
+	cancelText := "NO"
+	cancelTextX := cancelX + (btnW-measureText(cancelText, assets.FontSmall))/2
+	drawText(screen, cancelText, assets.FontSmall, cancelTextX, btnY+25, color.White)
 }
 
 func (s *Shop) drawBackButton(screen *ebiten.Image) {

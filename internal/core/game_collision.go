@@ -24,7 +24,6 @@ func (g *Game) checkCollisions() bool {
 				meteorType := g.meteors[i].GetType()
 				meteorPos := g.meteors[i].GetPosition()
 
-				// Explosive meteors create area damage
 				if meteorType == entities.MeteorExplosive {
 					g.handleExplosiveMeteor(meteorPos, meteorsToRemove)
 				} else {
@@ -62,7 +61,6 @@ func (g *Game) checkCollisions() bool {
 			meteorType := g.meteors[i].GetType()
 			meteorPos := g.meteors[i].GetPosition()
 
-			// Ice meteors slow the player instead of dealing damage
 			if meteorType == entities.MeteorIce {
 				g.player.ApplySlow()
 				g.notification.Show("FROZEN!", ui.NotificationShield)
@@ -110,7 +108,6 @@ func (g *Game) checkCollisions() bool {
 	}
 
 	for i := len(g.coins) - 1; i >= 0; i-- {
-		// Se já foi coletada, verifica se chegou ao destino
 		if g.coins[i].IsCollected() {
 			if g.coins[i].HasReachedTarget() {
 				coinValue := g.coins[i].GetValue()
@@ -122,14 +119,12 @@ func (g *Game) checkCollisions() bool {
 			continue
 		}
 
-		// Verifica colisão com jogador
 		coinX, coinY, coinW, coinH := g.coins[i].GetBounds()
 		playerCollider := g.player.Collider()
 
 		if coinX < playerCollider.X+playerCollider.Width && coinX+coinW > playerCollider.X &&
 			coinY < playerCollider.Y+playerCollider.Height && coinY+coinH > playerCollider.Y {
 
-			// Inicia animação de voo até o contador (canto superior esquerdo)
 			g.coins[i].Collect(35, 93)
 			break
 		}
@@ -189,13 +184,11 @@ func (g *Game) handleExplosiveMeteor(explosionPos systems.Vector, meteorsToRemov
 	}
 }
 
-// handleExplosiveMeteorDirect destroys nearby meteors directly (used when main meteor already removed)
 func (g *Game) handleExplosiveMeteorDirect(explosionPos systems.Vector) {
-	// Create large explosion effect
+
 	g.createExplosion(explosionPos, config.ParticleCount*3)
 	g.addScreenShake(15)
 
-	// Destroy nearby meteors within damage radius (iterate backwards to safely remove)
 	for i := len(g.meteors) - 1; i >= 0; i-- {
 		meteorPos := g.meteors[i].GetPosition()
 		dx := meteorPos.X - explosionPos.X

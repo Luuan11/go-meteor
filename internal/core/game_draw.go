@@ -221,13 +221,12 @@ func (g *Game) drawBossFight(screen *ebiten.Image) {
 	if g.boss != nil {
 		g.boss.Draw(screen)
 
-		// Draw minions
 		minions := g.boss.GetMinions()
 		for i, minion := range minions {
 			if minion != nil {
 				minion.Draw(screen)
 			}
-			_ = i // debug: usar i para ver quantos minions existem
+			_ = i
 		}
 	}
 
