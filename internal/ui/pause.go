@@ -149,21 +149,34 @@ func (pm *PauseMenu) Update() int {
 		}
 	}
 
-	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
-		mouseX, mouseY := ebiten.CursorPosition()
-
-		// Check settings button
+	handleClick := func(clickX, clickY int) int {
 		btn := pm.settingsButton
-		if float64(mouseX) >= btn.x && float64(mouseX) <= btn.x+btn.size &&
-			float64(mouseY) >= btn.y && float64(mouseY) <= btn.y+btn.size {
+		if float64(clickX) >= btn.x && float64(clickX) <= btn.x+btn.size &&
+			float64(clickY) >= btn.y && float64(clickY) <= btn.y+btn.size {
 			return PauseActionSettings
 		}
 
-		// Check shop button
 		shopBtn := pm.shopButton
-		if float64(mouseX) >= shopBtn.x && float64(mouseX) <= shopBtn.x+shopBtn.size &&
-			float64(mouseY) >= shopBtn.y && float64(mouseY) <= shopBtn.y+shopBtn.size {
+		if float64(clickX) >= shopBtn.x && float64(clickX) <= shopBtn.x+shopBtn.size &&
+			float64(clickY) >= shopBtn.y && float64(clickY) <= shopBtn.y+shopBtn.size {
 			return PauseActionShop
+		}
+
+		return PauseActionNone
+	}
+
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		mouseX, mouseY := ebiten.CursorPosition()
+		if action := handleClick(mouseX, mouseY); action != PauseActionNone {
+			return action
+		}
+	}
+
+	touchIDs := inpututil.AppendJustPressedTouchIDs(nil)
+	if len(touchIDs) > 0 {
+		touchX, touchY := ebiten.TouchPosition(touchIDs[0])
+		if action := handleClick(touchX, touchY); action != PauseActionNone {
+			return action
 		}
 	}
 
