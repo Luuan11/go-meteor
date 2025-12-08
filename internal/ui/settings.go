@@ -121,8 +121,7 @@ func (s *Settings) Update() {
 		s.cooldown = 10
 	}
 
-	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
-		mouseX, mouseY := ebiten.CursorPosition()
+	handleClick := func(clickX, clickY int) {
 		optionY := 150
 		spacing := 55
 
@@ -132,15 +131,15 @@ func (s *Settings) Update() {
 				yPos += 20
 			}
 
-			if mouseY >= yPos-20 && mouseY <= yPos+20 {
+			if clickY >= yPos-20 && clickY <= yPos+20 {
 				s.selectedOption = i
 				s.activateOption()
 				s.cooldown = 10
 				break
 			}
 
-			if i < 3 && mouseY >= yPos-20 && mouseY <= yPos+20 {
-				if mouseX < config.ScreenWidth/2 {
+			if i < 3 && clickY >= yPos-20 && clickY <= yPos+20 {
+				if clickX < config.ScreenWidth/2 {
 					s.selectedOption = i
 					s.adjustOption(-0.1)
 				} else {
@@ -151,6 +150,17 @@ func (s *Settings) Update() {
 				break
 			}
 		}
+	}
+
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		mouseX, mouseY := ebiten.CursorPosition()
+		handleClick(mouseX, mouseY)
+	}
+
+	touchIDs := inpututil.AppendJustPressedTouchIDs(nil)
+	if len(touchIDs) > 0 {
+		touchX, touchY := ebiten.TouchPosition(touchIDs[0])
+		handleClick(touchX, touchY)
 	}
 }
 

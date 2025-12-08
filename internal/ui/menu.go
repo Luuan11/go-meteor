@@ -162,6 +162,24 @@ func (m *Menu) Update() {
 
 	touchIDs := inpututil.AppendJustPressedTouchIDs(nil)
 	if len(touchIDs) > 0 {
+		for _, id := range touchIDs {
+			x, y := ebiten.TouchPosition(id)
+
+			btn := m.settingsButton
+			if float64(x) >= btn.x && float64(x) <= btn.x+btn.size &&
+				float64(y) >= btn.y && float64(y) <= btn.y+btn.size {
+				m.openSettings = true
+				return
+			}
+
+			shopBtn := m.shopButton
+			textWidth := 70.0
+			if float64(x) >= shopBtn.x && float64(x) <= shopBtn.x+textWidth &&
+				float64(y) >= shopBtn.y && float64(y) <= shopBtn.y+shopBtn.size {
+				m.openShop = true
+				return
+			}
+		}
 		m.readyToPlay = true
 	}
 }

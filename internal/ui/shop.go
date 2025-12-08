@@ -173,21 +173,19 @@ func (s *Shop) Update() ShopAction {
 		}
 	}
 
-	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
-		mouseX, mouseY := ebiten.CursorPosition()
-
+	handleClick := func(clickX, clickY int) {
 		if s.isMobile {
 			// Back button (top-left)
-			if mouseX >= 10 && mouseX <= 50 && mouseY >= 10 && mouseY <= 50 {
+			if clickX >= 10 && clickX <= 50 && clickY >= 10 && clickY <= 50 {
 				s.action = ShopActionClose
-				return s.action
+				return
 			}
 		} else {
 			// Close button (top-right X)
-			if mouseX >= config.ScreenWidth-50 && mouseX <= config.ScreenWidth-10 &&
-				mouseY >= 10 && mouseY <= 50 {
+			if clickX >= config.ScreenWidth-50 && clickX <= config.ScreenWidth-10 &&
+				clickY >= 10 && clickY <= 50 {
 				s.action = ShopActionClose
-				return s.action
+				return
 			}
 		}
 
@@ -206,8 +204,8 @@ func (s *Shop) Update() ShopAction {
 			itemWidth := int(float64(config.ScreenWidth) * 0.8)
 			itemStartX := (config.ScreenWidth - itemWidth) / 2
 
-			if mouseX >= itemStartX && mouseX <= itemStartX+itemWidth &&
-				mouseY >= y && mouseY <= y+itemHeight-4 {
+			if clickX >= itemStartX && clickX <= itemStartX+itemWidth &&
+				clickY >= y && clickY <= y+itemHeight-4 {
 				s.selectedIndex = i
 				item := s.Items[i]
 				if item.Level < item.MaxLevel && s.coins >= item.NextCost {
@@ -215,26 +213,37 @@ func (s *Shop) Update() ShopAction {
 					s.upgradeType = item.PowerType
 					s.showUpgradeMsg = true
 					s.msgTimer = 60
-					return s.action
+					return
 				}
 				break
 			}
 		}
 
 		if len(s.Items) > s.maxVisibleItems {
-			if mouseX >= config.ScreenWidth-50 && mouseX <= config.ScreenWidth-10 &&
-				mouseY >= 100 && mouseY <= 140 {
+			if clickX >= config.ScreenWidth-50 && clickX <= config.ScreenWidth-10 &&
+				clickY >= 100 && clickY <= 140 {
 				if s.scrollOffset > 0 {
 					s.scrollOffset--
 				}
 			}
-			if mouseX >= config.ScreenWidth-50 && mouseX <= config.ScreenWidth-10 &&
-				mouseY >= config.ScreenHeight-140 && mouseY <= config.ScreenHeight-100 {
+			if clickX >= config.ScreenWidth-50 && clickX <= config.ScreenWidth-10 &&
+				clickY >= config.ScreenHeight-140 && clickY <= config.ScreenHeight-100 {
 				if s.scrollOffset < len(s.Items)-s.maxVisibleItems {
 					s.scrollOffset++
 				}
 			}
 		}
+	}
+
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		mouseX, mouseY := ebiten.CursorPosition()
+		handleClick(mouseX, mouseY)
+	}
+
+	touchIDs := inpututil.AppendJustPressedTouchIDs(nil)
+	if len(touchIDs) > 0 {
+		touchX, touchY := ebiten.TouchPosition(touchIDs[0])
+		handleClick(touchX, touchY)
 	}
 
 	return s.action

@@ -69,9 +69,10 @@ func loadBackgroundMusic() {
 	musicPlayer.SetVolume(musicVolume * masterVolume)
 	if musicEnabled {
 		musicPlayer.Play()
+		log.Println("Background music loaded")
+	} else {
+		log.Println("Background music loaded (but not playing)")
 	}
-
-	log.Println("Background music loaded")
 }
 
 func loadSoundBytes(path string) []byte {
