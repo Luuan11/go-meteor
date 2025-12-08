@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"image/color"
+	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -12,15 +13,13 @@ import (
 	assets "go-meteor/src/pkg"
 )
 
-// Shop UI constants
 const (
 	shopDescriptionOffsetY = 38
-	shopPreviewOffsetX     = 250
+	shopPreviewOffsetX     = 320
 	shopPreviewOffsetY     = 45
 	shopMaxTextOffsetX     = 230
 )
 
-// Shop UI colors
 var (
 	colorUpgradePreview = color.RGBA{100, 255, 150, 255}
 	colorMaxLevel       = color.RGBA{255, 215, 0, 255}
@@ -60,6 +59,7 @@ type Shop struct {
 	upgradeType     string
 	showUpgradeMsg  bool
 	msgTimer        int
+	isMobile        bool
 }
 
 func NewShop() *Shop {
@@ -107,6 +107,10 @@ func (s *Shop) SetProgress(progress *systems.PlayerProgress) {
 			s.Items[i].NextCost = s.calculateCost(s.Items[i].Level, s.Items[i].IsSpecial)
 		}
 	}
+}
+
+func (s *Shop) SetMobile(isMobile bool) {
+	s.isMobile = isMobile
 }
 
 func (s *Shop) calculateCost(level int, isSpecial bool) int {
@@ -169,6 +173,70 @@ func (s *Shop) Update() ShopAction {
 		}
 	}
 
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		mouseX, mouseY := ebiten.CursorPosition()
+
+		if s.isMobile {
+			// Back button (top-left)
+			if mouseX >= 10 && mouseX <= 50 && mouseY >= 10 && mouseY <= 50 {
+				s.action = ShopActionClose
+				return s.action
+			}
+		} else {
+			// Close button (top-right X)
+			if mouseX >= config.ScreenWidth-50 && mouseX <= config.ScreenWidth-10 &&
+				mouseY >= 10 && mouseY <= 50 {
+				s.action = ShopActionClose
+				return s.action
+			}
+		}
+
+		startY := 95
+		itemHeight := 62
+
+		endIndex := s.scrollOffset + s.maxVisibleItems
+		if endIndex > len(s.Items) {
+			endIndex = len(s.Items)
+		}
+
+		for i := s.scrollOffset; i < endIndex; i++ {
+			displayIndex := i - s.scrollOffset
+			y := startY + displayIndex*itemHeight
+
+			itemWidth := int(float64(config.ScreenWidth) * 0.8)
+			itemStartX := (config.ScreenWidth - itemWidth) / 2
+
+			if mouseX >= itemStartX && mouseX <= itemStartX+itemWidth &&
+				mouseY >= y && mouseY <= y+itemHeight-4 {
+				s.selectedIndex = i
+				item := s.Items[i]
+				if item.Level < item.MaxLevel && s.coins >= item.NextCost {
+					s.action = ShopActionUpgrade
+					s.upgradeType = item.PowerType
+					s.showUpgradeMsg = true
+					s.msgTimer = 60
+					return s.action
+				}
+				break
+			}
+		}
+
+		if len(s.Items) > s.maxVisibleItems {
+			if mouseX >= config.ScreenWidth-50 && mouseX <= config.ScreenWidth-10 &&
+				mouseY >= 100 && mouseY <= 140 {
+				if s.scrollOffset > 0 {
+					s.scrollOffset--
+				}
+			}
+			if mouseX >= config.ScreenWidth-50 && mouseX <= config.ScreenWidth-10 &&
+				mouseY >= config.ScreenHeight-140 && mouseY <= config.ScreenHeight-100 {
+				if s.scrollOffset < len(s.Items)-s.maxVisibleItems {
+					s.scrollOffset++
+				}
+			}
+		}
+	}
+
 	return s.action
 }
 
@@ -210,6 +278,10 @@ func (s *Shop) Draw(screen *ebiten.Image) {
 		displayIndex := i - s.scrollOffset
 		y := startY + displayIndex*itemHeight
 
+		// Reduce width to 80% and center for all platforms
+		itemWidth := int(float64(config.ScreenWidth) * 0.8)
+		itemStartX := (config.ScreenWidth - itemWidth) / 2
+
 		bgColor := color.RGBA{30, 30, 50, 200}
 		borderColor := color.RGBA{60, 60, 90, 255}
 		if i == s.selectedIndex {
@@ -217,33 +289,33 @@ func (s *Shop) Draw(screen *ebiten.Image) {
 			borderColor = color.RGBA{120, 120, 180, 255}
 		}
 
-		border := ebiten.NewImage(config.ScreenWidth-30, itemHeight-4)
+		border := ebiten.NewImage(itemWidth, itemHeight-4)
 		border.Fill(borderColor)
 		borderOp := &ebiten.DrawImageOptions{}
-		borderOp.GeoM.Translate(15, float64(y))
+		borderOp.GeoM.Translate(float64(itemStartX), float64(y))
 		screen.DrawImage(border, borderOp)
 
-		bg := ebiten.NewImage(config.ScreenWidth-36, itemHeight-10)
+		bg := ebiten.NewImage(itemWidth-6, itemHeight-10)
 		bg.Fill(bgColor)
 		bgOp := &ebiten.DrawImageOptions{}
-		bgOp.GeoM.Translate(18, float64(y+3))
+		bgOp.GeoM.Translate(float64(itemStartX+3), float64(y+3))
 		screen.DrawImage(bg, bgOp)
 
 		iconOp := &ebiten.DrawImageOptions{}
 		iconOp.GeoM.Scale(0.65, 0.65)
-		iconOp.GeoM.Translate(25, float64(y+12))
+		iconOp.GeoM.Translate(float64(itemStartX+10), float64(y+12))
 		screen.DrawImage(item.Icon, iconOp)
 
 		nameText := item.Name
-		drawText(screen, nameText, assets.FontSmall, 75, y+20, color.White)
+		drawText(screen, nameText, assets.FontSmall, itemStartX+60, y+20, color.White)
 
 		if item.IsSpecial {
 			if item.Description != "" {
-				drawText(screen, item.Description, assets.FontSmall, 75, y+shopDescriptionOffsetY, colorDescription)
+				drawText(screen, item.Description, assets.FontSmall, itemStartX+60, y+shopDescriptionOffsetY, colorDescription)
 			}
 		} else {
 			levelText := fmt.Sprintf("Level %d/%d", item.Level, item.MaxLevel)
-			drawText(screen, levelText, assets.FontSmall, 75, y+45, color.RGBA{180, 180, 220, 255})
+			drawText(screen, levelText, assets.FontSmall, itemStartX+60, y+45, color.RGBA{180, 180, 220, 255})
 
 			if item.Level < item.MaxLevel {
 				currentDuration := 10 + (item.Level * item.BonusPerLvl)
@@ -272,11 +344,11 @@ func (s *Shop) Draw(screen *ebiten.Image) {
 
 			costCoinOp := &ebiten.DrawImageOptions{}
 			costCoinOp.GeoM.Scale(0.5, 0.5)
-			costCoinOp.GeoM.Translate(465, float64(y+17))
+			costCoinOp.GeoM.Translate(610, float64(y+15))
 			screen.DrawImage(assets.CoinSprite, costCoinOp)
 
 			costText := fmt.Sprintf("%d", item.NextCost)
-			drawText(screen, costText, assets.FontSmall, 490, y+32, costColor)
+			drawText(screen, costText, assets.FontSmall, 630, y+30, costColor)
 		}
 	}
 
@@ -298,9 +370,119 @@ func (s *Shop) Draw(screen *ebiten.Image) {
 	hintBgOp.GeoM.Translate(0, float64(config.ScreenHeight-32))
 	screen.DrawImage(hintBg, hintBgOp)
 
-	hintText := "ENTER: Buy  |  ESC: Close"
+	hintText := "ENTER: Buy  |  ESC: Close  "
+	if s.isMobile {
+		hintText = "TOUCH TO BUY"
+	}
 	hintX := (config.ScreenWidth - measureText(hintText, assets.FontSmall)) / 2
 	drawText(screen, hintText, assets.FontSmall, hintX, config.ScreenHeight-22, color.RGBA{200, 200, 200, 255})
+
+	if s.isMobile {
+		s.drawBackButton(screen)
+	} else {
+		s.drawCloseButton(screen)
+	}
+
+	if len(s.Items) > s.maxVisibleItems {
+		s.drawScrollButtons(screen)
+	}
+}
+
+func (s *Shop) drawCloseButton(screen *ebiten.Image) {
+	mouseX, mouseY := ebiten.CursorPosition()
+	isHovered := mouseX >= config.ScreenWidth-50 && mouseX <= config.ScreenWidth-10 &&
+		mouseY >= 10 && mouseY <= 50
+
+	btnColor := color.RGBA{200, 50, 50, 180}
+	if isHovered {
+		btnColor = color.RGBA{255, 80, 80, 220}
+	}
+
+	closeBtn := ebiten.NewImage(40, 40)
+	closeBtn.Fill(btnColor)
+	closeBtnOp := &ebiten.DrawImageOptions{}
+	closeBtnOp.GeoM.Translate(float64(config.ScreenWidth-50), 10)
+	screen.DrawImage(closeBtn, closeBtnOp)
+
+	drawText(screen, "X", assets.FontSmall, config.ScreenWidth-35, 33, color.White)
+}
+
+func (s *Shop) drawBackButton(screen *ebiten.Image) {
+	mouseX, mouseY := ebiten.CursorPosition()
+	isHovered := mouseX >= 10 && mouseX <= 50 && mouseY >= 10 && mouseY <= 50
+
+	btnColor := color.RGBA{100, 100, 150, 180}
+	if isHovered {
+		btnColor = color.RGBA{150, 150, 200, 220}
+	}
+
+	backBtn := ebiten.NewImage(40, 40)
+	backBtn.Fill(btnColor)
+	backBtnOp := &ebiten.DrawImageOptions{}
+	backBtnOp.GeoM.Translate(10, 10)
+	screen.DrawImage(backBtn, backBtnOp)
+
+	arrowOp := &ebiten.DrawImageOptions{}
+	w, h := assets.ScrollArrow.Bounds().Dx(), assets.ScrollArrow.Bounds().Dy()
+	// Rotate 180 degrees to point left (arrow points right by default)
+	arrowOp.GeoM.Translate(-float64(w)/2, -float64(h)/2)
+	arrowOp.GeoM.Rotate(math.Pi)
+	arrowOp.GeoM.Translate(30, 30)
+	screen.DrawImage(assets.ScrollArrow, arrowOp)
+}
+
+func (s *Shop) drawScrollButtons(screen *ebiten.Image) {
+	mouseX, mouseY := ebiten.CursorPosition()
+
+	// Scroll up button
+	upHovered := mouseX >= config.ScreenWidth-50 && mouseX <= config.ScreenWidth-10 &&
+		mouseY >= 100 && mouseY <= 140
+	upColor := color.RGBA{100, 100, 150, 180}
+	if upHovered && s.scrollOffset > 0 {
+		upColor = color.RGBA{150, 150, 200, 220}
+	} else if s.scrollOffset == 0 {
+		upColor = color.RGBA{60, 60, 80, 120}
+	}
+
+	upBtn := ebiten.NewImage(40, 40)
+	upBtn.Fill(upColor)
+	upBtnOp := &ebiten.DrawImageOptions{}
+	upBtnOp.GeoM.Translate(float64(config.ScreenWidth-50), 100)
+	screen.DrawImage(upBtn, upBtnOp)
+
+	// Draw arrow sprite pointing up
+	arrowOp := &ebiten.DrawImageOptions{}
+	w, h := assets.ScrollArrow.Bounds().Dx(), assets.ScrollArrow.Bounds().Dy()
+	// Rotate -90 degrees to point up (arrow points right by default)
+	arrowOp.GeoM.Translate(-float64(w)/2, -float64(h)/2)
+	arrowOp.GeoM.Rotate(-math.Pi / 2)
+	arrowOp.GeoM.Translate(float64(config.ScreenWidth-30), 120)
+	screen.DrawImage(assets.ScrollArrow, arrowOp)
+
+	// Scroll down button
+	downHovered := mouseX >= config.ScreenWidth-50 && mouseX <= config.ScreenWidth-10 &&
+		mouseY >= config.ScreenHeight-140 && mouseY <= config.ScreenHeight-100
+	downColor := color.RGBA{100, 100, 150, 180}
+	if downHovered && s.scrollOffset < len(s.Items)-s.maxVisibleItems {
+		downColor = color.RGBA{150, 150, 200, 220}
+	} else if s.scrollOffset >= len(s.Items)-s.maxVisibleItems {
+		downColor = color.RGBA{60, 60, 80, 120}
+	}
+
+	downBtn := ebiten.NewImage(40, 40)
+	downBtn.Fill(downColor)
+	downBtnOp := &ebiten.DrawImageOptions{}
+	downBtnOp.GeoM.Translate(float64(config.ScreenWidth-50), float64(config.ScreenHeight-140))
+	screen.DrawImage(downBtn, downBtnOp)
+
+	// Draw arrow sprite pointing down
+	arrowDownOp := &ebiten.DrawImageOptions{}
+	w2, h2 := assets.ScrollArrow.Bounds().Dx(), assets.ScrollArrow.Bounds().Dy()
+	// Rotate 90 degrees to point down (arrow points right by default)
+	arrowDownOp.GeoM.Translate(-float64(w2)/2, -float64(h2)/2)
+	arrowDownOp.GeoM.Rotate(math.Pi / 2)
+	arrowDownOp.GeoM.Translate(float64(config.ScreenWidth-30), float64(config.ScreenHeight-120))
+	screen.DrawImage(assets.ScrollArrow, arrowDownOp)
 }
 
 func (s *Shop) GetUpgradeType() string {

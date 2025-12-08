@@ -120,6 +120,38 @@ func (s *Settings) Update() {
 		s.activateOption()
 		s.cooldown = 10
 	}
+
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		mouseX, mouseY := ebiten.CursorPosition()
+		optionY := 150
+		spacing := 55
+
+		for i := 0; i < totalOptions; i++ {
+			yPos := optionY + spacing*i
+			if i == 5 {
+				yPos += 20
+			}
+			
+			if mouseY >= yPos-20 && mouseY <= yPos+20 {
+				s.selectedOption = i
+				s.activateOption()
+				s.cooldown = 10
+				break
+			}
+			
+			if i < 3 && mouseY >= yPos-20 && mouseY <= yPos+20 {
+				if mouseX < config.ScreenWidth/2 {
+					s.selectedOption = i
+					s.adjustOption(-0.1)
+				} else {
+					s.selectedOption = i
+					s.adjustOption(0.1)
+				}
+				s.cooldown = 5
+				break
+			}
+			}
+	}
 }
 
 func (s *Settings) adjustOption(delta float64) {

@@ -270,31 +270,21 @@ func (g *Game) drawGameOver(screen *ebiten.Image) {
 	drawText(screen, tryAgainText, assets.FontUi, tryAgainX, 480, color.White)
 
 	if g.isMobile {
-		shopButtonWidth := 180
-		shopButtonHeight := 40
-		shopButtonX := (config.ScreenWidth - shopButtonWidth) / 2
-		shopButtonY := 535
+		btnX := float64(10)
+		btnY := float64(10)
+		btnSize := float64(35)
 
-		shopButton := ebiten.NewImage(shopButtonWidth, shopButtonHeight)
-		shopButton.Fill(color.RGBA{255, 215, 0, 255})
-		shopButtonOp := &ebiten.DrawImageOptions{}
-		shopButtonOp.GeoM.Translate(float64(shopButtonX), float64(shopButtonY))
-		screen.DrawImage(shopButton, shopButtonOp)
+		iconOp := &ebiten.DrawImageOptions{}
+		mouseX, mouseY := ebiten.CursorPosition()
+		isHovered := float64(mouseX) >= btnX && float64(mouseX) <= btnX+btnSize &&
+			float64(mouseY) >= btnY && float64(mouseY) <= btnY+btnSize
 
-		shopButtonBorder := ebiten.NewImage(shopButtonWidth, shopButtonHeight)
-		for y := 0; y < shopButtonHeight; y++ {
-			for x := 0; x < shopButtonWidth; x++ {
-				if x < 3 || x >= shopButtonWidth-3 || y < 3 || y >= shopButtonHeight-3 {
-					shopButtonBorder.Set(x, y, color.RGBA{200, 170, 0, 255})
-				}
-			}
+		if isHovered {
+			iconOp.ColorScale.ScaleWithColor(color.RGBA{255, 215, 0, 255})
 		}
-		screen.DrawImage(shopButtonBorder, shopButtonOp)
-
-		shopText := "SHOP"
-		shopTextWidth := measureText(shopText, assets.FontSmall)
-		shopTextX := shopButtonX + (shopButtonWidth-shopTextWidth)/2
-		drawText(screen, shopText, assets.FontSmall, shopTextX, shopButtonY+12, color.RGBA{0, 0, 0, 255})
+		iconOp.GeoM.Scale(btnSize/float64(assets.CoinSprite.Bounds().Dx()), btnSize/float64(assets.CoinSprite.Bounds().Dy()))
+		iconOp.GeoM.Translate(btnX, btnY)
+		screen.DrawImage(assets.CoinSprite, iconOp)
 	} else {
 		shopText := "Press S to open SHOP"
 		shopWidth := measureText(shopText, assets.FontSmall)

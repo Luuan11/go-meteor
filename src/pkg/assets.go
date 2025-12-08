@@ -46,6 +46,8 @@ var ExtraLifePowerUpSprite = mustLoadImage("powers/extralife.png")
 var MultiplierPowerUpSprite = mustLoadImage("powers/multiplier.png")
 var CoinSprite = mustLoadImage("profile/coin.png")
 
+var ScrollArrow = mustLoadImage("mobile_controls/scroll_arrow.png")
+
 func mustLoadImage(name string) *ebiten.Image {
 	f, err := assets.Open(name)
 	if err != nil {

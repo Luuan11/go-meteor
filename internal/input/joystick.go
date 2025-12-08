@@ -85,17 +85,20 @@ func (j *Joystick) Update(touchIDs []ebiten.TouchID) {
 
 func (j *Joystick) Draw(screen *ebiten.Image) {
 	baseColor := color.RGBA{100, 100, 100, 120}
-	knobColor := color.RGBA{200, 200, 200, 180}
-
 	if j.isActive {
-		baseColor = color.RGBA{150, 150, 150, 150}
-		knobColor = color.RGBA{255, 255, 255, 220}
+		baseColor = color.RGBA{150, 150, 150, 180}
 	}
 
 	vector.DrawFilledCircle(screen, float32(j.centerX), float32(j.centerY), float32(j.radius), baseColor, false)
 
 	knobX := j.centerX + j.deltaX*j.radius*0.6
 	knobY := j.centerY + j.deltaY*j.radius*0.6
+
+	knobColor := color.RGBA{150, 150, 150, 200}
+	if j.isActive {
+		knobColor = color.RGBA{200, 200, 200, 255}
+	}
+
 	vector.DrawFilledCircle(screen, float32(knobX), float32(knobY), float32(j.knobRadius), knobColor, false)
 }
 
@@ -179,11 +182,8 @@ func (sb *ShootButton) IsActive() bool {
 func (sb *ShootButton) Draw(screen *ebiten.Image) {
 	buttonColor := color.RGBA{255, 100, 100, 120}
 	if sb.isActive {
-		buttonColor = color.RGBA{255, 150, 150, 180}
+		buttonColor = color.RGBA{255, 150, 150, 200}
 	}
 
 	vector.DrawFilledCircle(screen, float32(sb.x), float32(sb.y), float32(sb.radius), buttonColor, false)
-
-	circleColor := color.RGBA{255, 255, 255, 200}
-	vector.DrawFilledCircle(screen, float32(sb.x), float32(sb.y), float32(sb.radius*0.4), circleColor, false)
 }

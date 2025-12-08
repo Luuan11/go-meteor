@@ -225,10 +225,12 @@ func (g *Game) updateGameOver() error {
 
 		if g.isMobile {
 			x, y := ebiten.CursorPosition()
-			shopButtonX := (config.ScreenWidth - 180) / 2
-			shopButtonY := 535
+			btnX := 10
+			btnY := 10
+			btnSize := 35
 
-			if x >= shopButtonX && x <= shopButtonX+180 && y >= shopButtonY && y <= shopButtonY+40 {
+			if x >= btnX && x <= btnX+btnSize && y >= btnY && y <= btnY+btnSize {
+				g.stateBeforePause = config.StateGameOver
 				g.shop.SetProgress(g.progress)
 				g.state = config.StateShop
 				return nil
@@ -249,10 +251,11 @@ func (g *Game) updateGameOver() error {
 	if len(touchIDs) > 0 {
 		for _, id := range touchIDs {
 			x, y := ebiten.TouchPosition(id)
-			shopButtonX := (config.ScreenWidth - 180) / 2
-			shopButtonY := 535
+			btnX := 10
+			btnY := 10
+			btnSize := 35
 
-			if x >= shopButtonX && x <= shopButtonX+180 && y >= shopButtonY && y <= shopButtonY+40 {
+			if x >= btnX && x <= btnX+btnSize && y >= btnY && y <= btnY+btnSize {
 				g.stateBeforePause = config.StateGameOver
 				g.shop.SetProgress(g.progress)
 				g.state = config.StateShop
@@ -266,6 +269,7 @@ func (g *Game) updateGameOver() error {
 }
 
 func (g *Game) updateShop() error {
+	g.shop.SetMobile(g.isMobile)
 	action := g.shop.Update()
 
 	switch action {
