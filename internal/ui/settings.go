@@ -131,14 +131,14 @@ func (s *Settings) Update() {
 			if i == 5 {
 				yPos += 20
 			}
-			
+
 			if mouseY >= yPos-20 && mouseY <= yPos+20 {
 				s.selectedOption = i
 				s.activateOption()
 				s.cooldown = 10
 				break
 			}
-			
+
 			if i < 3 && mouseY >= yPos-20 && mouseY <= yPos+20 {
 				if mouseX < config.ScreenWidth/2 {
 					s.selectedOption = i
@@ -150,7 +150,7 @@ func (s *Settings) Update() {
 				s.cooldown = 5
 				break
 			}
-			}
+		}
 	}
 }
 
