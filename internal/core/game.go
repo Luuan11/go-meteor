@@ -127,7 +127,7 @@ func NewGame() *Game {
 		bossProjectilePool:         entities.NewBossProjectilePool(),
 		notification:               ui.NewNotification(),
 		wave:                       1,
-		isMobile:                   true,
+		isMobile:                   false,
 		touchDetected:              false,
 		leaderboard:                systems.NewLeaderboard(),
 		storage:                    systems.NewStorage(),
