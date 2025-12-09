@@ -35,8 +35,6 @@ func InitAudio() {
 	coinSound = loadSoundBytes("sounds/coin.wav")
 	damageSound = loadSoundBytes("sounds/damage.wav")
 	gameoverSound = loadSoundBytes("sounds/gameover.wav")
-
-	log.Println("Audio system initialized")
 }
 
 func loadSoundBytes(path string) []byte {
