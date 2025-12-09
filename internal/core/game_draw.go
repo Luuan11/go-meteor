@@ -192,9 +192,15 @@ func (g *Game) drawBossAnnouncement(screen *ebiten.Image) {
 		b.Draw(screen)
 	}
 
-	for _, p := range g.particles {
+	for _, p := range g.powerUps {
 		p.Draw(screen)
 	}
+
+	for _, c := range g.coins {
+		c.Draw(screen)
+	}
+
+	g.drawParticlesBatch(screen)
 
 	g.drawUI(screen)
 
