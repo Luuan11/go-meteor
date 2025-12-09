@@ -216,7 +216,13 @@ func (g *Game) checkBossCollisions() {
 }
 
 func (g *Game) checkLaserBossCollisions() {
+	if g.boss == nil {
+		return
+	}
 	for i := len(g.lasers) - 1; i >= 0; i-- {
+		if i >= len(g.lasers) {
+			continue
+		}
 		if g.checkLaserHitBoss(i) {
 			return
 		}
@@ -249,8 +255,15 @@ func (g *Game) checkLaserHitBoss(laserIdx int) bool {
 }
 
 func (g *Game) checkLaserHitMinions(laserIdx int) {
-	for mIdx, minion := range g.boss.GetMinions() {
-		if minion == nil || !g.lasers[laserIdx].Collider().Intersects(minion.Collider()) {
+	if g.boss == nil || laserIdx >= len(g.lasers) {
+		return
+	}
+	minions := g.boss.GetMinions()
+	if minions == nil {
+		return
+	}
+	for mIdx, minion := range minions {
+		if minion == nil || laserIdx >= len(g.lasers) || !g.lasers[laserIdx].Collider().Intersects(minion.Collider()) {
 			continue
 		}
 
@@ -308,7 +321,14 @@ func (g *Game) checkBossProjectileCollisions() {
 }
 
 func (g *Game) checkMinionPlayerCollision() {
-	for mIdx, minion := range g.boss.GetMinions() {
+	if g.boss == nil {
+		return
+	}
+	minions := g.boss.GetMinions()
+	if minions == nil {
+		return
+	}
+	for mIdx, minion := range minions {
 		if minion == nil || !minion.Collider().Intersects(g.player.Collider()) {
 			continue
 		}

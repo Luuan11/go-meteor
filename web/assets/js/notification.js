@@ -4,10 +4,18 @@ class NotificationManager {
     this.defaultDuration = 3000;
     this.animationDelay = 10;
     this.removeDelay = 300;
-    this.init();
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => this.init());
+    } else {
+      this.init();
+    }
   }
 
   init() {
+    if (!document.body) {
+      setTimeout(() => this.init(), 50);
+      return;
+    }
     if (!document.getElementById('notification-container')) {
       this.container = document.createElement('div');
       this.container.id = 'notification-container';
@@ -19,6 +27,10 @@ class NotificationManager {
   }
 
   show(message, type = 'info', duration = this.defaultDuration) {
+    if (!this.container) {
+      console.warn('Notification container not ready yet');
+      return;
+    }
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
     

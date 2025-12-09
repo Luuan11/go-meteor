@@ -52,6 +52,9 @@ func NewMinion(boss *Boss, offsetAngle float64) *Minion {
 }
 
 func (m *Minion) Update() {
+	if m.parentBoss == nil {
+		return
+	}
 	targetX := m.parentBoss.position.X + (m.side * m.offsetX)
 	dx := targetX - m.position.X
 	m.velocity.X = dx * 0.15

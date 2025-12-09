@@ -305,10 +305,16 @@ func (b *Boss) GetBossType() config.BossType {
 }
 
 func (b *Boss) GetMinions() []*Minion {
+	if b == nil {
+		return nil
+	}
 	return b.minions
 }
 
 func (b *Boss) RemoveMinion(index int) {
+	if b == nil || b.minions == nil {
+		return
+	}
 	if index >= 0 && index < len(b.minions) {
 		b.minions[index] = nil
 	}

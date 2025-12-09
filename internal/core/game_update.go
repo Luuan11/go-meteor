@@ -1,7 +1,6 @@
 package core
 
 import (
-	"fmt"
 	"math/rand"
 	"time"
 
@@ -17,7 +16,6 @@ import (
 func (g *Game) Update() error {
 	g.updateStars()
 
-	stateStart := time.Now()
 	var err error
 	switch g.state {
 	case config.StateMenu:
@@ -41,11 +39,6 @@ func (g *Game) Update() error {
 	case config.StateWaitingNameInput:
 		return nil
 	}
-
-	if time.Since(stateStart) > 10*time.Millisecond {
-		fmt.Printf("⚠️ STATE UPDATE SLOW (%v): %v\n", g.state, time.Since(stateStart))
-	}
-
 	return err
 }
 
