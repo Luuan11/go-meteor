@@ -142,9 +142,10 @@ function validateScore(name, score, sessionToken) {
     return { valid: false, error: `Game time too short (minimum ${MIN_GAME_TIME} seconds)` };
   }
   
-  const baseScorePerSecond = 10;
-  const bossBonus = 200;
-  const maxPossibleScore = Math.floor(gameTimeSeconds * baseScorePerSecond) + bossBonus;
+  const averageScorePerSecond = 30;
+  const bossBonus = 500;
+  const comboMultiplier = 1.5;
+  const maxPossibleScore = Math.floor(gameTimeSeconds * averageScorePerSecond * comboMultiplier) + bossBonus;
   
   if (score > maxPossibleScore) {
     return { valid: false, error: `Score too high for game time (max ${maxPossibleScore} in ${Math.floor(gameTimeSeconds)}s)` };
