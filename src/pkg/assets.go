@@ -25,6 +25,28 @@ var BossTankSprite = mustLoadImage("boss/boss_tank.png")
 var BossSniperSprite = mustLoadImage("boss/boss_sniper.png")
 var BossSwarmSprite = mustLoadImage("boss/boss_swarm.png")
 
+var SkinGray = mustLoadImage("profile/player.png")
+var SkinGreen = mustLoadImage("skins/green.png")
+var SkinYellow = mustLoadImage("skins/yellow.png")
+var SkinPink = mustLoadImage("skins/pink.png")
+var SkinRed = mustLoadImage("skins/red.png")
+var SkinPurple = mustLoadImage("skins/purple.png")
+var SkinBlack = mustLoadImage("skins/black.png")
+var SkinGold = mustLoadImage("skins/gold.png")
+var SkinWhite = mustLoadImage("skins/white.png")
+
+var SkinMap = map[string]*ebiten.Image{
+	"gray":   SkinGray,
+	"green":  SkinGreen,
+	"yellow": SkinYellow,
+	"pink":   SkinPink,
+	"red":    SkinRed,
+	"purple": SkinPurple,
+	"black":  SkinBlack,
+	"gold":   SkinGold,
+	"white":  SkinWhite,
+}
+
 var MeteorSprites = mustLoadImages("meteors/*.png")
 var PlanetsSprites = mustLoadImages("planets/*.png")
 
