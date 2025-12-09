@@ -18,20 +18,20 @@ const (
 	settingsOptionBack         = 3
 	settingsTotalOptions       = 4
 
-	settingsStartY  = 150
-	settingsSpacing = 55
+	settingsStartY     = 150
+	settingsSpacing    = 55
 	settingsButtonSize = 35
 )
 
 var (
-	settingsOverlay     *ebiten.Image
-	colorSettingsGold   = color.RGBA{255, 215, 0, 255}
-	colorSettingsGray   = color.RGBA{180, 180, 180, 255}
-	colorSettingsWhite  = color.RGBA{255, 255, 255, 255}
-	colorBtnMinus       = color.RGBA{150, 50, 50, 200}
-	colorBtnMinusHover  = color.RGBA{200, 80, 80, 255}
-	colorBtnPlus        = color.RGBA{50, 150, 50, 200}
-	colorBtnPlusHover   = color.RGBA{80, 200, 80, 255}
+	settingsOverlay    *ebiten.Image
+	colorSettingsGold  = color.RGBA{255, 215, 0, 255}
+	colorSettingsGray  = color.RGBA{180, 180, 180, 255}
+	colorSettingsWhite = color.RGBA{255, 255, 255, 255}
+	colorBtnMinus      = color.RGBA{150, 50, 50, 200}
+	colorBtnMinusHover = color.RGBA{200, 80, 80, 255}
+	colorBtnPlus       = color.RGBA{50, 150, 50, 200}
+	colorBtnPlusHover  = color.RGBA{80, 200, 80, 255}
 )
 
 func init() {

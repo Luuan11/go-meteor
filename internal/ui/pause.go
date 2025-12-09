@@ -21,19 +21,19 @@ const (
 	PauseActionShop     = 4
 	PauseActionNone     = -1
 
-	pauseStatsStartY = 210
+	pauseStatsStartY  = 210
 	pauseStatsSpacing = 25
-	pauseMenuStartY = 340
-	pauseMenuSpacing = 80
+	pauseMenuStartY   = 340
+	pauseMenuSpacing  = 80
 )
 
 var (
-	colorPauseWhite = color.RGBA{255, 255, 255, 200}
-	colorPauseBlue  = color.RGBA{100, 200, 255, 200}
-	colorPauseRed   = color.RGBA{255, 150, 50, 200}
-	colorPausePurple = color.RGBA{200, 100, 255, 200}
-	colorPauseGreen = color.RGBA{100, 255, 100, 200}
-	colorPauseGold  = color.RGBA{255, 200, 0, 255}
+	colorPauseWhite     = color.RGBA{255, 255, 255, 200}
+	colorPauseBlue      = color.RGBA{100, 200, 255, 200}
+	colorPauseRed       = color.RGBA{255, 150, 50, 200}
+	colorPausePurple    = color.RGBA{200, 100, 255, 200}
+	colorPauseGreen     = color.RGBA{100, 255, 100, 200}
+	colorPauseGold      = color.RGBA{255, 200, 0, 255}
 	colorPauseHighlight = color.RGBA{100, 100, 100, 100}
 )
 
@@ -174,7 +174,7 @@ func (p *PauseMenu) handleKeyboardInput() int {
 	if inpututil.IsKeyJustPressed(ebiten.KeyDown) || inpututil.IsKeyJustPressed(ebiten.KeyS) {
 		p.selectedOption = (p.selectedOption + 1) % len(p.options)
 	}
-	
+
 	if inpututil.IsKeyJustPressed(ebiten.KeyUp) || inpututil.IsKeyJustPressed(ebiten.KeyW) {
 		p.selectedOption--
 		if p.selectedOption < 0 {
