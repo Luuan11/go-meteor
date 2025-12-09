@@ -32,6 +32,15 @@ func (g *Game) createExplosion(pos systems.Vector, count int) {
 			count = 3
 		}
 	}
+
+	if len(g.particles) > 3000 {
+		g.cleanParticles()
+	}
+
+	if len(g.particles) > 8000 {
+		return
+	}
+
 	for i := 0; i < count; i++ {
 		g.particles = append(g.particles, effects.NewParticle(pos))
 	}

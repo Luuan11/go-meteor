@@ -232,9 +232,8 @@ func (g *Game) checkLaserHitBoss(laserIdx int) bool {
 	damage := g.lasers[laserIdx].GetDamage()
 	isDead := g.boss.TakeDamage(damage)
 
-	g.createExplosion(g.boss.GetPosition(), 5)
-
 	if !g.lasers[laserIdx].IsLaserBeam() {
+		g.createExplosion(g.boss.GetPosition(), 5)
 		g.laserPool.Put(g.lasers[laserIdx])
 		g.lasers = append(g.lasers[:laserIdx], g.lasers[laserIdx+1:]...)
 	}
@@ -258,9 +257,8 @@ func (g *Game) checkLaserHitMinions(laserIdx int) {
 		damage := g.lasers[laserIdx].GetDamage()
 		isDead := minion.TakeDamage(damage)
 
-		g.createExplosion(minion.GetPosition(), config.MinionParticles)
-
 		if !g.lasers[laserIdx].IsLaserBeam() {
+			g.createExplosion(minion.GetPosition(), config.MinionParticles)
 			g.laserPool.Put(g.lasers[laserIdx])
 			g.lasers = append(g.lasers[:laserIdx], g.lasers[laserIdx+1:]...)
 		}
