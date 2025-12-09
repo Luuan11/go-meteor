@@ -11,7 +11,28 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/text"
 )
 
-var settingsOverlay *ebiten.Image
+const (
+	settingsOptionMasterVolume = 0
+	settingsOptionSFXVolume    = 1
+	settingsOptionToggleSFX    = 2
+	settingsOptionBack         = 3
+	settingsTotalOptions       = 4
+
+	settingsStartY  = 150
+	settingsSpacing = 55
+	settingsButtonSize = 35
+)
+
+var (
+	settingsOverlay     *ebiten.Image
+	colorSettingsGold   = color.RGBA{255, 215, 0, 255}
+	colorSettingsGray   = color.RGBA{180, 180, 180, 255}
+	colorSettingsWhite  = color.RGBA{255, 255, 255, 255}
+	colorBtnMinus       = color.RGBA{150, 50, 50, 200}
+	colorBtnMinusHover  = color.RGBA{200, 80, 80, 255}
+	colorBtnPlus        = color.RGBA{50, 150, 50, 200}
+	colorBtnPlusHover   = color.RGBA{80, 200, 80, 255}
+)
 
 func init() {
 	settingsOverlay = ebiten.NewImage(config.ScreenWidth, config.ScreenHeight)
@@ -24,68 +45,32 @@ type Settings struct {
 	closed         bool
 }
 
-const (
-	optionMasterVolume = 0
-	optionSFXVolume    = 1
-	optionToggleSFX    = 2
-	optionBack         = 3
-	totalOptions       = 4
-)
-
 func NewSettings() *Settings {
-	return &Settings{
-		selectedOption: 0,
-		cooldown:       0,
-		closed:         false,
-	}
+	return &Settings{}
 }
 
 func (s *Settings) Draw(screen *ebiten.Image) {
 	screen.DrawImage(settingsOverlay, nil)
+	s.drawTitle(screen)
+	s.drawOptions(screen)
+}
 
+func (s *Settings) drawTitle(screen *ebiten.Image) {
 	titleText := "AUDIO SETTINGS"
 	titleBounds := text.BoundString(assets.FontUi, titleText)
 	titleX := (config.ScreenWidth - titleBounds.Dx()) / 2
-	text.Draw(screen, titleText, assets.FontUi, titleX, 80, color.White)
-
-	optionY := 150
-	spacing := 55
-
-	s.drawVolumeOption(screen, 0, "Master Volume", assets.GetMasterVolume(), optionY+spacing*0)
-	s.drawVolumeOption(screen, 1, "SFX Volume", assets.GetSFXVolume(), optionY+spacing*1)
-
-	sfxStatus := "ON"
-	if !assets.IsSFXEnabled() {
-		sfxStatus = "OFF"
-	}
-	s.drawOption(screen, 2, fmt.Sprintf("Sound Effects: %s", sfxStatus), optionY+spacing*2)
-	s.drawOption(screen, 3, "BACK", optionY+spacing*3+20)
+	text.Draw(screen, titleText, assets.FontUi, titleX, 80, colorSettingsWhite)
 }
 
-func (s *Settings) drawVolumeButton(screen *ebiten.Image, x, y int, label string, btnColor, hoverColor color.RGBA) {
-	mouseX, mouseY := ebiten.CursorPosition()
-	finalColor := btnColor
-	if mouseX >= x && mouseX <= x+35 && mouseY >= y && mouseY <= y+35 {
-		finalColor = hoverColor
-	}
-	btn := ebiten.NewImage(35, 35)
-	btn.Fill(finalColor)
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(float64(x), float64(y))
-	screen.DrawImage(btn, op)
-	textX := x + 5
-	if label == "+" {
-		textX = x + 3
-	}
-	text.Draw(screen, label, assets.FontUi, textX, y+33, color.White)
+func (s *Settings) drawOptions(screen *ebiten.Image) {
+	s.drawVolumeOption(screen, settingsOptionMasterVolume, "Master Volume", assets.GetMasterVolume(), settingsStartY)
+	s.drawVolumeOption(screen, settingsOptionSFXVolume, "SFX Volume", assets.GetSFXVolume(), settingsStartY+settingsSpacing)
+	s.drawToggleOption(screen, settingsOptionToggleSFX, settingsStartY+settingsSpacing*2)
+	s.drawBackOption(screen, settingsOptionBack, settingsStartY+settingsSpacing*3+20)
 }
 
 func (s *Settings) drawVolumeOption(screen *ebiten.Image, index int, label string, volume float64, y int) {
-	optionColor := color.RGBA{180, 180, 180, 255}
-	if s.selectedOption == index {
-		optionColor = color.RGBA{255, 215, 0, 255}
-	}
-
+	optionColor := s.getOptionColor(index)
 	labelText := fmt.Sprintf("%s: %.0f%%", label, volume*100)
 	labelBounds := text.BoundString(assets.FontUi, labelText)
 	labelX := (config.ScreenWidth - labelBounds.Dx()) / 2
@@ -93,26 +78,57 @@ func (s *Settings) drawVolumeOption(screen *ebiten.Image, index int, label strin
 
 	minusX := labelX - 40
 	minusY := y - 30
-	s.drawVolumeButton(screen, minusX, minusY, "-",
-		color.RGBA{150, 50, 50, 200},
-		color.RGBA{200, 80, 80, 255})
+	s.drawVolumeButton(screen, minusX, minusY, "-", colorBtnMinus, colorBtnMinusHover)
 
 	plusX := labelX + labelBounds.Dx() + 5
 	plusY := y - 30
-	s.drawVolumeButton(screen, plusX, plusY, "+",
-		color.RGBA{50, 150, 50, 200},
-		color.RGBA{80, 200, 80, 255})
+	s.drawVolumeButton(screen, plusX, plusY, "+", colorBtnPlus, colorBtnPlusHover)
 }
 
-func (s *Settings) drawOption(screen *ebiten.Image, index int, label string, y int) {
-	optionColor := color.RGBA{180, 180, 180, 255}
-	if s.selectedOption == index {
-		optionColor = color.RGBA{255, 215, 0, 255}
+func (s *Settings) drawToggleOption(screen *ebiten.Image, index int, y int) {
+	sfxStatus := "ON"
+	if !assets.IsSFXEnabled() {
+		sfxStatus = "OFF"
 	}
+	s.drawSimpleOption(screen, index, fmt.Sprintf("Sound Effects: %s", sfxStatus), y)
+}
 
+func (s *Settings) drawBackOption(screen *ebiten.Image, index int, y int) {
+	s.drawSimpleOption(screen, index, "BACK", y)
+}
+
+func (s *Settings) drawSimpleOption(screen *ebiten.Image, index int, label string, y int) {
+	optionColor := s.getOptionColor(index)
 	labelBounds := text.BoundString(assets.FontUi, label)
 	labelX := (config.ScreenWidth - labelBounds.Dx()) / 2
 	text.Draw(screen, label, assets.FontUi, labelX, y, optionColor)
+}
+
+func (s *Settings) getOptionColor(index int) color.Color {
+	if s.selectedOption == index {
+		return colorSettingsGold
+	}
+	return colorSettingsGray
+}
+
+func (s *Settings) drawVolumeButton(screen *ebiten.Image, x, y int, label string, btnColor, hoverColor color.RGBA) {
+	mouseX, mouseY := ebiten.CursorPosition()
+	finalColor := btnColor
+	if mouseX >= x && mouseX <= x+settingsButtonSize && mouseY >= y && mouseY <= y+settingsButtonSize {
+		finalColor = hoverColor
+	}
+
+	btn := ebiten.NewImage(settingsButtonSize, settingsButtonSize)
+	btn.Fill(finalColor)
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(float64(x), float64(y))
+	screen.DrawImage(btn, op)
+
+	textX := x + 5
+	if label == "+" {
+		textX = x + 3
+	}
+	text.Draw(screen, label, assets.FontUi, textX, y+33, colorSettingsWhite)
 }
 
 func (s *Settings) Update() {
@@ -121,6 +137,11 @@ func (s *Settings) Update() {
 		return
 	}
 
+	s.handleKeyboardInput()
+	s.handleMouseAndTouch()
+}
+
+func (s *Settings) handleKeyboardInput() {
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 		s.closed = true
 		s.cooldown = 10
@@ -128,19 +149,11 @@ func (s *Settings) Update() {
 	}
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyArrowUp) || inpututil.IsKeyJustPressed(ebiten.KeyW) {
-		s.selectedOption--
-		if s.selectedOption < 0 {
-			s.selectedOption = totalOptions - 1
-		}
-		s.cooldown = 8
+		s.moveSelectionUp()
 	}
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyArrowDown) || inpututil.IsKeyJustPressed(ebiten.KeyS) {
-		s.selectedOption++
-		if s.selectedOption >= totalOptions {
-			s.selectedOption = 0
-		}
-		s.cooldown = 8
+		s.moveSelectionDown()
 	}
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyArrowLeft) || inpututil.IsKeyJustPressed(ebiten.KeyA) {
@@ -157,93 +170,107 @@ func (s *Settings) Update() {
 		s.activateOption()
 		s.cooldown = 10
 	}
+}
 
-	handleClick := func(clickX, clickY int) {
-		optionY := 150
-		spacing := 55
+func (s *Settings) moveSelectionUp() {
+	s.selectedOption--
+	if s.selectedOption < 0 {
+		s.selectedOption = settingsTotalOptions - 1
+	}
+	s.cooldown = 8
+}
 
-		for i := 0; i < 2; i++ {
-			yPos := optionY + spacing*i
+func (s *Settings) moveSelectionDown() {
+	s.selectedOption++
+	if s.selectedOption >= settingsTotalOptions {
+		s.selectedOption = 0
+	}
+	s.cooldown = 8
+}
 
-			volumeLabel := ""
-			volume := 0.0
-			if i == 0 {
-				volumeLabel = "Master Volume"
-				volume = assets.GetMasterVolume()
-			} else {
-				volumeLabel = "SFX Volume"
-				volume = assets.GetSFXVolume()
-			}
-
-			labelText := fmt.Sprintf("%s: %.0f%%", volumeLabel, volume*100)
-			labelBounds := text.BoundString(assets.FontUi, labelText)
-			labelX := (config.ScreenWidth - labelBounds.Dx()) / 2
-
-			// Check - button (updated position)
-			minusX := labelX - 40
-			minusY := yPos - 25
-			if clickX >= minusX && clickX <= minusX+35 && clickY >= minusY && clickY <= minusY+35 {
-				s.selectedOption = i
-				s.adjustOption(-0.1)
-				s.cooldown = 5
-				return
-			}
-
-			// Check + button (updated position)
-			plusX := labelX + labelBounds.Dx() + 5
-			plusY := yPos - 25
-			if clickX >= plusX && clickX <= plusX+35 && clickY >= plusY && clickY <= plusY+35 {
-				s.selectedOption = i
-				s.adjustOption(0.1)
-				s.cooldown = 5
-				return
-			}
+func (s *Settings) handleMouseAndTouch() {
+	handleClick := func(x, y int) {
+		if s.handleVolumeButtonClick(x, y) {
+			return
 		}
-
-		// Check toggle and back buttons
-		for i := 0; i < totalOptions; i++ {
-			yPos := optionY + spacing*i
-			if i == 3 {
-				yPos += 20
-			}
-
-			if clickY >= yPos-20 && clickY <= yPos+20 && clickX >= config.ScreenWidth/4 && clickX <= config.ScreenWidth*3/4 {
-				s.selectedOption = i
-				s.activateOption()
-				s.cooldown = 10
-				break
-			}
-		}
+		s.handleOptionClick(x, y)
 	}
 
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
-		mouseX, mouseY := ebiten.CursorPosition()
-		handleClick(mouseX, mouseY)
+		handleClick(ebiten.CursorPosition())
 	}
 
-	touchIDs := inpututil.AppendJustPressedTouchIDs(nil)
-	if len(touchIDs) > 0 {
-		touchX, touchY := ebiten.TouchPosition(touchIDs[0])
-		handleClick(touchX, touchY)
+	if touchIDs := inpututil.AppendJustPressedTouchIDs(nil); len(touchIDs) > 0 {
+		handleClick(ebiten.TouchPosition(touchIDs[0]))
+	}
+}
+
+func (s *Settings) handleVolumeButtonClick(x, y int) bool {
+	for i := 0; i < 2; i++ {
+		yPos := settingsStartY + settingsSpacing*i
+
+		labelText := s.getVolumeLabelText(i)
+		labelBounds := text.BoundString(assets.FontUi, labelText)
+		labelX := (config.ScreenWidth - labelBounds.Dx()) / 2
+
+		minusX := labelX - 40
+		minusY := yPos - 25
+		if x >= minusX && x <= minusX+settingsButtonSize && y >= minusY && y <= minusY+settingsButtonSize {
+			s.selectedOption = i
+			s.adjustOption(-0.1)
+			s.cooldown = 5
+			return true
+		}
+
+		plusX := labelX + labelBounds.Dx() + 5
+		plusY := yPos - 25
+		if x >= plusX && x <= plusX+settingsButtonSize && y >= plusY && y <= plusY+settingsButtonSize {
+			s.selectedOption = i
+			s.adjustOption(0.1)
+			s.cooldown = 5
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Settings) getVolumeLabelText(index int) string {
+	if index == 0 {
+		return fmt.Sprintf("Master Volume: %.0f%%", assets.GetMasterVolume()*100)
+	}
+	return fmt.Sprintf("SFX Volume: %.0f%%", assets.GetSFXVolume()*100)
+}
+
+func (s *Settings) handleOptionClick(x, y int) {
+	for i := 0; i < settingsTotalOptions; i++ {
+		yPos := settingsStartY + settingsSpacing*i
+		if i == 3 {
+			yPos += 20
+		}
+
+		if y >= yPos-20 && y <= yPos+20 && x >= config.ScreenWidth/4 && x <= config.ScreenWidth*3/4 {
+			s.selectedOption = i
+			s.activateOption()
+			s.cooldown = 10
+			break
+		}
 	}
 }
 
 func (s *Settings) adjustOption(delta float64) {
 	switch s.selectedOption {
-	case optionMasterVolume:
-		newVol := assets.GetMasterVolume() + delta
-		assets.SetMasterVolume(newVol)
-	case optionSFXVolume:
-		newVol := assets.GetSFXVolume() + delta
-		assets.SetSFXVolume(newVol)
+	case settingsOptionMasterVolume:
+		assets.SetMasterVolume(assets.GetMasterVolume() + delta)
+	case settingsOptionSFXVolume:
+		assets.SetSFXVolume(assets.GetSFXVolume() + delta)
 	}
 }
 
 func (s *Settings) activateOption() {
 	switch s.selectedOption {
-	case optionToggleSFX:
+	case settingsOptionToggleSFX:
 		assets.ToggleSFX()
-	case optionBack:
+	case settingsOptionBack:
 		s.closed = true
 	}
 }

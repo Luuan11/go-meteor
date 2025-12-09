@@ -87,6 +87,15 @@ func (g *Game) drawPlaying(screen *ebiten.Image) {
 }
 
 func (g *Game) drawUI(screen *ebiten.Image) {
+	g.drawLives(screen)
+	g.drawWaveAndCoins(screen)
+	g.drawScores(screen)
+	ui.DrawPauseIcon(screen, g.pauseIconX, g.pauseIconY)
+	g.drawPowerUpBars(screen)
+	g.drawMobileControls(screen)
+}
+
+func (g *Game) drawLives(screen *ebiten.Image) {
 	lives := g.player.GetLives()
 
 	for i := 0; i < lives && i < config.InitialLives; i++ {
@@ -101,7 +110,9 @@ func (g *Game) drawUI(screen *ebiten.Image) {
 		op.GeoM.Translate(float64(config.HeartOffsetX+(config.InitialLives+i)*config.HeartSpacing), config.HeartOffsetY)
 		screen.DrawImage(assets.ExtraLifeUISprite, op)
 	}
+}
 
+func (g *Game) drawWaveAndCoins(screen *ebiten.Image) {
 	waveText := fmt.Sprintf("Wave: %d", g.wave)
 	drawText(screen, waveText, assets.FontSmall, 20, 65, color.White)
 
@@ -117,57 +128,53 @@ func (g *Game) drawUI(screen *ebiten.Image) {
 
 	if g.combo > 1 {
 		comboText := fmt.Sprintf("%d COMBO", g.combo)
-		comboColor := color.RGBA{255, 200, 0, 255}
-		drawText(screen, comboText, assets.FontSmall, 20, 130, comboColor)
+		drawText(screen, comboText, assets.FontSmall, 20, 130, color.RGBA{255, 200, 0, 255})
 	}
+}
 
+func (g *Game) drawScores(screen *ebiten.Image) {
 	scoreText := fmt.Sprintf("Points: %d", g.score)
 	drawText(screen, scoreText, assets.FontSmall, 20, 570, color.White)
 
 	highScoreText := fmt.Sprintf("HIGH SCORE: %d", g.highScore)
-	highScoreWidth := measureText(highScoreText, assets.FontSmall)
-	highScoreX := config.ScreenWidth - highScoreWidth - 20
+	highScoreX := config.ScreenWidth - measureText(highScoreText, assets.FontSmall) - 20
 	drawText(screen, highScoreText, assets.FontSmall, highScoreX, 570, color.White)
+}
 
-	ui.DrawPauseIcon(screen, g.pauseIconX, g.pauseIconY)
-
+func (g *Game) drawPowerUpBars(screen *ebiten.Image) {
 	barY := float32(config.PowerUpBarStartY)
 
 	if g.superPowerActive {
-		progress := float32(g.superPowerTimer.Progress())
-		ui.DrawPowerUpBar(screen, progress, color.RGBA{255, 100, 255, 255})
+		ui.DrawPowerUpBarAt(screen, float32(g.superPowerTimer.Progress()), color.RGBA{255, 100, 255, 255}, barY)
 		barY += config.PowerUpBarSpacing
 	}
 
 	if g.player.HasShield() {
-		progress := float32(g.player.ShieldProgress())
-		ui.DrawPowerUpBarAt(screen, progress, color.RGBA{100, 200, 255, 255}, barY)
+		ui.DrawPowerUpBarAt(screen, float32(g.player.ShieldProgress()), color.RGBA{100, 200, 255, 255}, barY)
 		barY += config.PowerUpBarSpacing
 	}
 
 	if g.slowMotionActive {
-		progress := float32(g.slowMotionTimer.Progress())
-		ui.DrawPowerUpBarAt(screen, progress, color.RGBA{100, 255, 255, 255}, barY)
+		ui.DrawPowerUpBarAt(screen, float32(g.slowMotionTimer.Progress()), color.RGBA{100, 255, 255, 255}, barY)
 		barY += config.PowerUpBarSpacing
 	}
 
 	if g.laserBeamActive {
-		progress := float32(g.laserBeamTimer.Progress())
-		ui.DrawPowerUpBarAt(screen, progress, color.RGBA{150, 100, 255, 255}, barY)
+		ui.DrawPowerUpBarAt(screen, float32(g.laserBeamTimer.Progress()), color.RGBA{150, 100, 255, 255}, barY)
 		barY += config.PowerUpBarSpacing
 	}
 
 	if g.nukeActive {
-		progress := float32(g.nukeTimer.Progress())
-		ui.DrawPowerUpBarAt(screen, progress, color.RGBA{255, 50, 50, 255}, barY)
+		ui.DrawPowerUpBarAt(screen, float32(g.nukeTimer.Progress()), color.RGBA{255, 50, 50, 255}, barY)
 		barY += 30
 	}
 
 	if g.multiplierActive {
-		progress := float32(g.multiplierTimer.Progress())
-		ui.DrawPowerUpBarAt(screen, progress, color.RGBA{255, 215, 0, 255}, barY)
+		ui.DrawPowerUpBarAt(screen, float32(g.multiplierTimer.Progress()), color.RGBA{255, 215, 0, 255}, barY)
 	}
+}
 
+func (g *Game) drawMobileControls(screen *ebiten.Image) {
 	if g.isMobile && g.joystick != nil && g.shootButton != nil {
 		g.joystick.Draw(screen)
 		g.shootButton.Draw(screen)
@@ -196,6 +203,10 @@ func (g *Game) drawBossAnnouncement(screen *ebiten.Image) {
 		alpha = uint8(float64(g.bossAnnouncementTimer) / float64(config.BossAnnouncementFade) * 255)
 	}
 
+	g.drawBossAnnouncementText(screen, alpha)
+}
+
+func (g *Game) drawBossAnnouncementText(screen *ebiten.Image, alpha uint8) {
 	txt := "BOSS INCOMING!"
 	face := assets.FontUi
 	txtWidth := measureText(txt, face)
@@ -203,16 +214,8 @@ func (g *Game) drawBossAnnouncement(screen *ebiten.Image) {
 	y := config.ScreenHeight / 2
 
 	shadowOffset := 4
-	shadowColor := color.RGBA{0, 0, 0, alpha}
-	drawText(screen, txt, face, x+shadowOffset, y+shadowOffset, shadowColor)
-
-	textColor := color.RGBA{255, 50, 50, alpha}
-	drawText(screen, txt, face, x, y, textColor)
-
-	if g.isMobile && g.joystick != nil && g.shootButton != nil {
-		g.joystick.Draw(screen)
-		g.shootButton.Draw(screen)
-	}
+	drawText(screen, txt, face, x+shadowOffset, y+shadowOffset, color.RGBA{0, 0, 0, alpha})
+	drawText(screen, txt, face, x, y, color.RGBA{255, 50, 50, alpha})
 }
 
 func (g *Game) drawBossFight(screen *ebiten.Image) {
@@ -255,8 +258,7 @@ func (g *Game) drawBossFight(screen *ebiten.Image) {
 
 func (g *Game) drawGameOver(screen *ebiten.Image) {
 	youDiedText := "GAME OVER"
-	youDiedWidth := measureText(youDiedText, assets.FontUi)
-	youDiedX := (config.ScreenWidth - youDiedWidth) / 2
+	youDiedX := (config.ScreenWidth - measureText(youDiedText, assets.FontUi)) / 2
 	drawText(screen, youDiedText, assets.FontUi, youDiedX, 150, color.White)
 
 	if g.statistics != nil {
@@ -264,37 +266,39 @@ func (g *Game) drawGameOver(screen *ebiten.Image) {
 	}
 
 	tryAgainText := "Press ENTER to try again"
-	tryAgainWidth := measureText(tryAgainText, assets.FontUi)
-	tryAgainX := (config.ScreenWidth - tryAgainWidth) / 2
+	tryAgainX := (config.ScreenWidth - measureText(tryAgainText, assets.FontUi)) / 2
 	drawText(screen, tryAgainText, assets.FontUi, tryAgainX, 480, color.White)
 
-	if g.isMobile {
-		btnX := float64(10)
-		btnY := float64(10)
-		btnSize := float64(35)
-
-		iconOp := &ebiten.DrawImageOptions{}
-		mouseX, mouseY := ebiten.CursorPosition()
-		isHovered := float64(mouseX) >= btnX && float64(mouseX) <= btnX+btnSize &&
-			float64(mouseY) >= btnY && float64(mouseY) <= btnY+btnSize
-
-		if isHovered {
-			iconOp.ColorScale.ScaleWithColor(color.RGBA{255, 215, 0, 255})
-		}
-		iconOp.GeoM.Scale(btnSize/float64(assets.CoinSprite.Bounds().Dx()), btnSize/float64(assets.CoinSprite.Bounds().Dy()))
-		iconOp.GeoM.Translate(btnX, btnY)
-		screen.DrawImage(assets.CoinSprite, iconOp)
-	} else {
-		shopText := "Press S to open SHOP"
-		shopWidth := measureText(shopText, assets.FontSmall)
-		shopX := (config.ScreenWidth - shopWidth) / 2
-		drawText(screen, shopText, assets.FontSmall, shopX, 535, color.RGBA{255, 215, 0, 255})
-	}
+	g.drawShopHint(screen)
 
 	highScoreText := fmt.Sprintf("HIGH SCORE: %d", g.highScore)
-	highScoreWidth := measureText(highScoreText, assets.FontSmall)
-	highScoreX := config.ScreenWidth - highScoreWidth - 20
+	highScoreX := config.ScreenWidth - measureText(highScoreText, assets.FontSmall) - 20
 	drawText(screen, highScoreText, assets.FontSmall, highScoreX, 570, color.RGBA{255, 215, 0, 255})
+}
+
+func (g *Game) drawShopHint(screen *ebiten.Image) {
+	if g.isMobile {
+		g.drawShopIconButton(screen)
+	} else {
+		shopText := "Press S to open SHOP"
+		shopX := (config.ScreenWidth - measureText(shopText, assets.FontSmall)) / 2
+		drawText(screen, shopText, assets.FontSmall, shopX, 535, color.RGBA{255, 215, 0, 255})
+	}
+}
+
+func (g *Game) drawShopIconButton(screen *ebiten.Image) {
+	const btnX, btnY, btnSize = 10.0, 10.0, 35.0
+	x, y := ebiten.CursorPosition()
+
+	iconOp := &ebiten.DrawImageOptions{}
+	if float64(x) >= btnX && float64(x) <= btnX+btnSize && float64(y) >= btnY && float64(y) <= btnY+btnSize {
+		iconOp.ColorScale.ScaleWithColor(color.RGBA{255, 215, 0, 255})
+	}
+
+	scale := btnSize / float64(assets.CoinSprite.Bounds().Dx())
+	iconOp.GeoM.Scale(scale, scale)
+	iconOp.GeoM.Translate(btnX, btnY)
+	screen.DrawImage(assets.CoinSprite, iconOp)
 }
 
 func (g *Game) drawParticlesBatch(screen *ebiten.Image) {

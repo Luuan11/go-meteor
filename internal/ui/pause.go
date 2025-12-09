@@ -20,14 +20,28 @@ const (
 	PauseActionSettings = 3
 	PauseActionShop     = 4
 	PauseActionNone     = -1
+
+	pauseStatsStartY = 210
+	pauseStatsSpacing = 25
+	pauseMenuStartY = 340
+	pauseMenuSpacing = 80
+)
+
+var (
+	colorPauseWhite = color.RGBA{255, 255, 255, 200}
+	colorPauseBlue  = color.RGBA{100, 200, 255, 200}
+	colorPauseRed   = color.RGBA{255, 150, 50, 200}
+	colorPausePurple = color.RGBA{200, 100, 255, 200}
+	colorPauseGreen = color.RGBA{100, 255, 100, 200}
+	colorPauseGold  = color.RGBA{255, 200, 0, 255}
+	colorPauseHighlight = color.RGBA{100, 100, 100, 100}
 )
 
 type PauseMenu struct {
-	selectedOption int
-	options        []string
-	settingsButton *IconButton
-	shopButton     *IconButton
-
+	selectedOption    int
+	options           []string
+	settingsButton    *IconButton
+	shopButton        *IconButton
 	score             int
 	wave              int
 	meteorsDestroyed  int
@@ -37,8 +51,7 @@ type PauseMenu struct {
 
 func NewPauseMenu() *PauseMenu {
 	return &PauseMenu{
-		selectedOption: 0,
-		options:        []string{"Continue", "Restart", "Quit"},
+		options: []string{"Continue", "Restart", "Quit"},
 		settingsButton: &IconButton{
 			x:    config.ScreenWidth - 50,
 			y:    10,
@@ -62,126 +75,139 @@ func (p *PauseMenu) SetStats(score, wave, meteorsDestroyed, powerUpsCollected in
 	p.survivalTime = survivalTime
 }
 
-func (pm *PauseMenu) Draw(screen *ebiten.Image) {
+func (p *PauseMenu) Draw(screen *ebiten.Image) {
+	p.drawOverlay(screen)
+	p.drawTitle(screen)
+	p.drawStatistics(screen)
+	p.drawMenuOptions(screen)
+	p.drawButtons(screen)
+}
+
+func (p *PauseMenu) drawOverlay(screen *ebiten.Image) {
 	overlay := ebiten.NewImage(config.ScreenWidth, config.ScreenHeight)
 	overlay.Fill(color.RGBA{0, 0, 0, 180})
 	screen.DrawImage(overlay, nil)
+}
 
+func (p *PauseMenu) drawTitle(screen *ebiten.Image) {
 	titleText := "PAUSED"
 	titleBounds := text.BoundString(assets.FontUi, titleText)
 	titleX := (config.ScreenWidth - titleBounds.Dx()) / 2
-	text.Draw(screen, titleText, assets.FontUi, titleX, 150, color.White)
+	text.Draw(screen, titleText, assets.FontUi, titleX, 150, colorPauseWhite)
+}
 
-	// Draw current statistics
-	statsY := 210
+func (p *PauseMenu) drawStatistics(screen *ebiten.Image) {
 	statsX := (config.ScreenWidth - 300) / 2
+	y := pauseStatsStartY
 
-	scoreText := fmt.Sprintf("Score: %d", pm.score)
-	text.Draw(screen, scoreText, assets.FontSmall, statsX, statsY, color.RGBA{255, 255, 255, 200})
+	stats := []struct {
+		text  string
+		color color.Color
+	}{
+		{fmt.Sprintf("Score: %d", p.score), colorPauseWhite},
+		{fmt.Sprintf("Wave: %d", p.wave), colorPauseBlue},
+		{fmt.Sprintf("Meteors: %d", p.meteorsDestroyed), colorPauseRed},
+		{fmt.Sprintf("Power-ups: %d", p.powerUpsCollected), colorPausePurple},
+		{p.formatSurvivalTime(), colorPauseGreen},
+	}
 
-	waveText := fmt.Sprintf("Wave: %d", pm.wave)
-	text.Draw(screen, waveText, assets.FontSmall, statsX, statsY+25, color.RGBA{100, 200, 255, 200})
+	for _, stat := range stats {
+		text.Draw(screen, stat.text, assets.FontSmall, statsX, y, stat.color)
+		y += pauseStatsSpacing
+	}
+}
 
-	meteorsText := fmt.Sprintf("Meteors: %d", pm.meteorsDestroyed)
-	text.Draw(screen, meteorsText, assets.FontSmall, statsX, statsY+50, color.RGBA{255, 150, 50, 200})
+func (p *PauseMenu) formatSurvivalTime() string {
+	minutes := int(p.survivalTime.Minutes())
+	seconds := int(p.survivalTime.Seconds()) % 60
+	return fmt.Sprintf("Time: %02d:%02d", minutes, seconds)
+}
 
-	powerUpsText := fmt.Sprintf("Power-ups: %d", pm.powerUpsCollected)
-	text.Draw(screen, powerUpsText, assets.FontSmall, statsX, statsY+75, color.RGBA{200, 100, 255, 200})
-
-	minutes := int(pm.survivalTime.Minutes())
-	seconds := int(pm.survivalTime.Seconds()) % 60
-	timeText := fmt.Sprintf("Time: %02d:%02d", minutes, seconds)
-	text.Draw(screen, timeText, assets.FontSmall, statsX, statsY+100, color.RGBA{100, 255, 100, 200})
-
-	// Draw menu options
-	for i, option := range pm.options {
-		var optionColor color.Color = color.White
-		if i == pm.selectedOption {
-			optionColor = color.RGBA{255, 200, 0, 255}
-			vector.DrawFilledRect(screen, float32((config.ScreenWidth-300)/2), float32(340+i*80), 300, 60, color.RGBA{100, 100, 100, 100}, false)
+func (p *PauseMenu) drawMenuOptions(screen *ebiten.Image) {
+	for i, option := range p.options {
+		optionColor := colorPauseWhite
+		if i == p.selectedOption {
+			optionColor = colorPauseGold
+			p.drawOptionHighlight(screen, i)
 		}
 
 		optionBounds := text.BoundString(assets.FontUi, option)
 		optionX := (config.ScreenWidth - optionBounds.Dx()) / 2
-		text.Draw(screen, option, assets.FontUi, optionX, 380+i*80, optionColor)
+		optionY := pauseMenuStartY + i*pauseMenuSpacing
+		text.Draw(screen, option, assets.FontUi, optionX, optionY+40, optionColor)
 	}
-
-	pm.drawSettingsButton(screen)
-	pm.drawShopButton(screen)
 }
 
-func (pm *PauseMenu) drawSettingsButton(screen *ebiten.Image) {
-	btn := pm.settingsButton
-	mouseX, mouseY := ebiten.CursorPosition()
-	isHovered := float64(mouseX) >= btn.x && float64(mouseX) <= btn.x+btn.size &&
-		float64(mouseY) >= btn.y && float64(mouseY) <= btn.y+btn.size
+func (p *PauseMenu) drawOptionHighlight(screen *ebiten.Image, index int) {
+	x := float32((config.ScreenWidth - 300) / 2)
+	y := float32(pauseMenuStartY + index*pauseMenuSpacing)
+	vector.DrawFilledRect(screen, x, y, 300, 60, colorPauseHighlight, false)
+}
 
+func (p *PauseMenu) drawButtons(screen *ebiten.Image) {
+	p.drawIconButton(screen, p.settingsButton)
+	p.drawIconButton(screen, p.shopButton)
+}
+
+func (p *PauseMenu) drawIconButton(screen *ebiten.Image, btn *IconButton) {
+	x, y := ebiten.CursorPosition()
 	op := &ebiten.DrawImageOptions{}
-	if isHovered {
-		op.ColorScale.ScaleWithColor(color.RGBA{255, 215, 0, 255})
+	if p.isButtonHovered(btn, float64(x), float64(y)) {
+		op.ColorScale.ScaleWithColor(colorPauseGold)
 	}
 	op.GeoM.Translate(btn.x, btn.y)
 	screen.DrawImage(btn.icon, op)
 }
 
-func (pm *PauseMenu) drawShopButton(screen *ebiten.Image) {
-	btn := pm.shopButton
-	mouseX, mouseY := ebiten.CursorPosition()
-	isHovered := float64(mouseX) >= btn.x && float64(mouseX) <= btn.x+btn.size &&
-		float64(mouseY) >= btn.y && float64(mouseY) <= btn.y+btn.size
-
-	op := &ebiten.DrawImageOptions{}
-	if isHovered {
-		op.ColorScale.ScaleWithColor(color.RGBA{255, 215, 0, 255})
-	}
-	op.GeoM.Translate(btn.x, btn.y)
-	screen.DrawImage(btn.icon, op)
+func (p *PauseMenu) isButtonHovered(btn *IconButton, x, y float64) bool {
+	return x >= btn.x && x <= btn.x+btn.size && y >= btn.y && y <= btn.y+btn.size
 }
 
-func (pm *PauseMenu) Update() int {
+func (p *PauseMenu) Update() int {
+	if action := p.handleKeyboardInput(); action != PauseActionNone {
+		return action
+	}
+	return p.handleMouseAndTouch()
+}
+
+func (p *PauseMenu) handleKeyboardInput() int {
 	if inpututil.IsKeyJustPressed(ebiten.KeyDown) || inpututil.IsKeyJustPressed(ebiten.KeyS) {
-		pm.selectedOption = (pm.selectedOption + 1) % len(pm.options)
+		p.selectedOption = (p.selectedOption + 1) % len(p.options)
 	}
+	
 	if inpututil.IsKeyJustPressed(ebiten.KeyUp) || inpututil.IsKeyJustPressed(ebiten.KeyW) {
-		pm.selectedOption--
-		if pm.selectedOption < 0 {
-			pm.selectedOption = len(pm.options) - 1
-		}
-	}
-
-	handleClick := func(clickX, clickY int) int {
-		btn := pm.settingsButton
-		if float64(clickX) >= btn.x && float64(clickX) <= btn.x+btn.size &&
-			float64(clickY) >= btn.y && float64(clickY) <= btn.y+btn.size {
-			return PauseActionSettings
-		}
-
-		shopBtn := pm.shopButton
-		if float64(clickX) >= shopBtn.x && float64(clickX) <= shopBtn.x+shopBtn.size &&
-			float64(clickY) >= shopBtn.y && float64(clickY) <= shopBtn.y+shopBtn.size {
-			return PauseActionShop
-		}
-
-		return PauseActionNone
-	}
-
-	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
-		mouseX, mouseY := ebiten.CursorPosition()
-		if action := handleClick(mouseX, mouseY); action != PauseActionNone {
-			return action
-		}
-	}
-
-	touchIDs := inpututil.AppendJustPressedTouchIDs(nil)
-	if len(touchIDs) > 0 {
-		touchX, touchY := ebiten.TouchPosition(touchIDs[0])
-		if action := handleClick(touchX, touchY); action != PauseActionNone {
-			return action
+		p.selectedOption--
+		if p.selectedOption < 0 {
+			p.selectedOption = len(p.options) - 1
 		}
 	}
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) || inpututil.IsKeyJustPressed(ebiten.KeySpace) {
-		return pm.selectedOption
+		return p.selectedOption
+	}
+
+	return PauseActionNone
+}
+
+func (p *PauseMenu) handleMouseAndTouch() int {
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		return p.handleClick(ebiten.CursorPosition())
+	}
+
+	if touchIDs := inpututil.AppendJustPressedTouchIDs(nil); len(touchIDs) > 0 {
+		return p.handleClick(ebiten.TouchPosition(touchIDs[0]))
+	}
+
+	return PauseActionNone
+}
+
+func (p *PauseMenu) handleClick(x, y int) int {
+	if p.isButtonHovered(p.settingsButton, float64(x), float64(y)) {
+		return PauseActionSettings
+	}
+
+	if p.isButtonHovered(p.shopButton, float64(x), float64(y)) {
+		return PauseActionShop
 	}
 
 	return PauseActionNone

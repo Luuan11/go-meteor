@@ -11,6 +11,8 @@ type PlayerProgress struct {
 	Coins         int            `json:"coins"`
 	CoinsLifetime int            `json:"coinsLifetime"`
 	Upgrades      map[string]int `json:"upgrades"`
+	OwnedSkins    []string       `json:"ownedSkins"`
+	EquippedSkin  string         `json:"equippedSkin"`
 	Version       int            `json:"version"`
 	Checksum      string         `json:"checksum"`
 }
@@ -27,6 +29,8 @@ func NewPlayerProgress() *PlayerProgress {
 		Coins:         0,
 		CoinsLifetime: 0,
 		Upgrades:      make(map[string]int),
+		OwnedSkins:    []string{"gray"},
+		EquippedSkin:  "gray",
 		Version:       ProgressVersion,
 	}
 }
@@ -64,8 +68,8 @@ func (p *PlayerProgress) UpgradePower(powerType string) bool {
 }
 
 func (p *PlayerProgress) CalculateChecksum() string {
-	data := fmt.Sprintf("%d|%d|%v|%d|%s",
-		p.Coins, p.CoinsLifetime, p.Upgrades, p.Version, checksumSalt)
+	data := fmt.Sprintf("%d|%d|%v|%v|%s|%d|%s",
+		p.Coins, p.CoinsLifetime, p.Upgrades, p.OwnedSkins, p.EquippedSkin, p.Version, checksumSalt)
 	hash := sha256.Sum256([]byte(data))
 	return hex.EncodeToString(hash[:])
 }
@@ -113,8 +117,42 @@ func PlayerProgressFromJSON(jsonData string) (*PlayerProgress, error) {
 	if progress.Upgrades == nil {
 		progress.Upgrades = make(map[string]int)
 	}
+	if len(progress.OwnedSkins) == 0 {
+		progress.OwnedSkins = []string{"gray"}
+	}
+	if progress.EquippedSkin == "" {
+		progress.EquippedSkin = "gray"
+	}
 	if err := progress.Validate(); err != nil {
 		return nil, err
 	}
 	return &progress, nil
+}
+
+func (p *PlayerProgress) HasSkin(skinID string) bool {
+	for _, owned := range p.OwnedSkins {
+		if owned == skinID {
+			return true
+		}
+	}
+	return false
+}
+
+func (p *PlayerProgress) BuySkin(skinID string, cost int) bool {
+	if p.HasSkin(skinID) {
+		return false
+	}
+	if !p.SpendCoins(cost) {
+		return false
+	}
+	p.OwnedSkins = append(p.OwnedSkins, skinID)
+	return true
+}
+
+func (p *PlayerProgress) EquipSkin(skinID string) bool {
+	if !p.HasSkin(skinID) {
+		return false
+	}
+	p.EquippedSkin = skinID
+	return true
 }

@@ -156,5 +156,9 @@ func NewGame() *Game {
 	g.loadLeaderboard()
 	g.loadProgress()
 
+	if g.progress != nil {
+		g.player.SetSkin(g.progress.EquippedSkin)
+	}
+
 	return g
 }

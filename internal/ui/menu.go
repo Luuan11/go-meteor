@@ -11,9 +11,17 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/text"
 )
 
-func formatScore(score int) string {
-	return fmt.Sprintf("%d", score)
-}
+const (
+	menuCooldownFrames = 15
+	shopTextWidth      = 70
+)
+
+var (
+	colorMenuWhite  = color.White
+	colorMenuGold   = color.RGBA{255, 215, 0, 255}
+	colorMenuPurple = color.RGBA{143, 47, 233, 255}
+	colorMenuCredit = color.RGBA{150, 100, 255, 255}
+)
 
 type Menu struct {
 	readyToPlay    bool
@@ -33,10 +41,6 @@ type IconButton struct {
 
 func NewMenu() *Menu {
 	return &Menu{
-		readyToPlay:  false,
-		openSettings: false,
-		openShop:     false,
-		cooldown:     0,
 		settingsButton: &IconButton{
 			x:    config.ScreenWidth - 50,
 			y:    10,
@@ -53,49 +57,64 @@ func NewMenu() *Menu {
 }
 
 func (m *Menu) Draw(screen *ebiten.Image) {
+	m.drawPlayer(screen)
+	m.drawTitle(screen)
+	m.drawScores(screen)
+	m.drawInstructions(screen)
+	m.drawCredit(screen)
+	m.drawButtons(screen)
+}
+
+func (m *Menu) drawPlayer(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Scale(0.5, 0.5)
 	op.GeoM.Translate(280, 50)
 	screen.DrawImage(assets.GopherPlayer, op)
+}
 
+func (m *Menu) drawTitle(screen *ebiten.Image) {
 	titleText := "Space GO"
 	titleBounds := text.BoundString(assets.ScoreFont, titleText)
 	titleX := (config.ScreenWidth - titleBounds.Dx()) / 2
-	text.Draw(screen, titleText, assets.ScoreFont, titleX, 320, color.White)
+	text.Draw(screen, titleText, assets.ScoreFont, titleX, 320, colorMenuWhite)
+}
 
-	highScoreText := "High Score: " + formatScore(m.highScore)
+func (m *Menu) drawScores(screen *ebiten.Image) {
+	highScoreText := "High Score: " + fmt.Sprintf("%d", m.highScore)
 	highScoreBounds := text.BoundString(assets.FontSmall, highScoreText)
 	highScoreX := (config.ScreenWidth - highScoreBounds.Dx()) / 2
-	text.Draw(screen, highScoreText, assets.FontSmall, highScoreX, 510, color.RGBA{255, 215, 0, 255})
+	text.Draw(screen, highScoreText, assets.FontSmall, highScoreX, 510, colorMenuGold)
 
 	if m.lastScore > 0 {
-		lastScoreText := "Last Score: " + formatScore(m.lastScore)
+		lastScoreText := "Last Score: " + fmt.Sprintf("%d", m.lastScore)
 		lastScoreBounds := text.BoundString(assets.FontSmall, lastScoreText)
 		lastScoreX := (config.ScreenWidth - lastScoreBounds.Dx()) / 2
-		text.Draw(screen, lastScoreText, assets.FontSmall, lastScoreX, 535, color.RGBA{143, 47, 233, 255})
+		text.Draw(screen, lastScoreText, assets.FontSmall, lastScoreX, 535, colorMenuPurple)
 	}
+}
 
+func (m *Menu) drawInstructions(screen *ebiten.Image) {
 	instructionText := "Press ENTER to start"
 	instructionBounds := text.BoundString(assets.FontUi, instructionText)
 	instructionX := (config.ScreenWidth - instructionBounds.Dx()) / 2
-	text.Draw(screen, instructionText, assets.FontUi, instructionX, 400, color.White)
+	text.Draw(screen, instructionText, assets.FontUi, instructionX, 400, colorMenuWhite)
+}
 
+func (m *Menu) drawCredit(screen *ebiten.Image) {
 	creditText := "Luuan11"
 	creditBounds := text.BoundString(assets.FontSmall, creditText)
 	creditX := (config.ScreenWidth - creditBounds.Dx()) / 2
-	text.Draw(screen, creditText, assets.FontSmall, creditX, 565, color.RGBA{150, 100, 255, 255})
+	text.Draw(screen, creditText, assets.FontSmall, creditX, 565, colorMenuCredit)
+}
 
-	m.drawButton(screen, m.settingsButton)
+func (m *Menu) drawButtons(screen *ebiten.Image) {
+	m.drawIconButton(screen, m.settingsButton)
 	m.drawShopButton(screen)
 }
 
-func (m *Menu) drawButton(screen *ebiten.Image, btn *IconButton) {
-	mouseX, mouseY := ebiten.CursorPosition()
-	isHovered := float64(mouseX) >= btn.x && float64(mouseX) <= btn.x+btn.size &&
-		float64(mouseY) >= btn.y && float64(mouseY) <= btn.y+btn.size
-
+func (m *Menu) drawIconButton(screen *ebiten.Image, btn *IconButton) {
 	op := &ebiten.DrawImageOptions{}
-	if isHovered {
+	if m.isButtonHovered(btn, btn.size) {
 		op.ColorScale.ScaleWithColor(color.RGBA{255, 215, 0, 255})
 	}
 	op.GeoM.Translate(btn.x, btn.y)
@@ -104,14 +123,8 @@ func (m *Menu) drawButton(screen *ebiten.Image, btn *IconButton) {
 
 func (m *Menu) drawShopButton(screen *ebiten.Image) {
 	btn := m.shopButton
-	mouseX, mouseY := ebiten.CursorPosition()
+	isHovered := m.isButtonHovered(btn, shopTextWidth)
 
-	// Check if mouse is hovering over button area (icon + text)
-	textWidth := 70 // Approximate width for icon + "Shop" text
-	isHovered := float64(mouseX) >= btn.x && float64(mouseX) <= btn.x+float64(textWidth) &&
-		float64(mouseY) >= btn.y && float64(mouseY) <= btn.y+btn.size
-
-	// Draw icon
 	op := &ebiten.DrawImageOptions{}
 	if isHovered {
 		op.ColorScale.ScaleWithColor(color.RGBA{255, 215, 0, 255})
@@ -119,12 +132,17 @@ func (m *Menu) drawShopButton(screen *ebiten.Image) {
 	op.GeoM.Translate(btn.x, btn.y)
 	screen.DrawImage(btn.icon, op)
 
-	// Draw "Shop" text
-	var shopTextColor color.Color = color.White
+	var shopTextColor color.Color = colorMenuWhite
 	if isHovered {
 		shopTextColor = color.RGBA{255, 215, 0, 255}
 	}
 	text.Draw(screen, "Shop", assets.FontSmall, int(btn.x)+40, int(btn.y)+22, shopTextColor)
+}
+
+func (m *Menu) isButtonHovered(btn *IconButton, width float64) bool {
+	x, y := ebiten.CursorPosition()
+	return float64(x) >= btn.x && float64(x) <= btn.x+width &&
+		float64(y) >= btn.y && float64(y) <= btn.y+btn.size
 }
 
 func (m *Menu) Update() {
@@ -137,51 +155,54 @@ func (m *Menu) Update() {
 		m.readyToPlay = true
 	}
 
-	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
-		mouseX, mouseY := ebiten.CursorPosition()
+	m.handleMouseInput()
+	m.handleTouchInput()
+}
 
-		// Check settings button
-		btn := m.settingsButton
-		if float64(mouseX) >= btn.x && float64(mouseX) <= btn.x+btn.size &&
-			float64(mouseY) >= btn.y && float64(mouseY) <= btn.y+btn.size {
+func (m *Menu) handleMouseInput() {
+	if !inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		return
+	}
+
+	if m.isButtonHovered(m.settingsButton, m.settingsButton.size) {
+		m.openSettings = true
+		return
+	}
+
+	if m.isButtonHovered(m.shopButton, shopTextWidth) {
+		m.openShop = true
+		return
+	}
+
+	m.readyToPlay = true
+}
+
+func (m *Menu) handleTouchInput() {
+	touchIDs := inpututil.AppendJustPressedTouchIDs(nil)
+	if len(touchIDs) == 0 {
+		return
+	}
+
+	for _, id := range touchIDs {
+		x, y := ebiten.TouchPosition(id)
+
+		if m.isTouchOnButton(m.settingsButton, x, y, m.settingsButton.size) {
 			m.openSettings = true
 			return
 		}
 
-		// Check shop button (icon + text area)
-		shopBtn := m.shopButton
-		textWidth := 70.0 // Approximate width for icon + "Shop" text
-		if float64(mouseX) >= shopBtn.x && float64(mouseX) <= shopBtn.x+textWidth &&
-			float64(mouseY) >= shopBtn.y && float64(mouseY) <= shopBtn.y+shopBtn.size {
+		if m.isTouchOnButton(m.shopButton, x, y, shopTextWidth) {
 			m.openShop = true
 			return
 		}
-
-		m.readyToPlay = true
 	}
 
-	touchIDs := inpututil.AppendJustPressedTouchIDs(nil)
-	if len(touchIDs) > 0 {
-		for _, id := range touchIDs {
-			x, y := ebiten.TouchPosition(id)
+	m.readyToPlay = true
+}
 
-			btn := m.settingsButton
-			if float64(x) >= btn.x && float64(x) <= btn.x+btn.size &&
-				float64(y) >= btn.y && float64(y) <= btn.y+btn.size {
-				m.openSettings = true
-				return
-			}
-
-			shopBtn := m.shopButton
-			textWidth := 70.0
-			if float64(x) >= shopBtn.x && float64(x) <= shopBtn.x+textWidth &&
-				float64(y) >= shopBtn.y && float64(y) <= shopBtn.y+shopBtn.size {
-				m.openShop = true
-				return
-			}
-		}
-		m.readyToPlay = true
-	}
+func (m *Menu) isTouchOnButton(btn *IconButton, x, y int, width float64) bool {
+	return float64(x) >= btn.x && float64(x) <= btn.x+width &&
+		float64(y) >= btn.y && float64(y) <= btn.y+btn.size
 }
 
 func (m *Menu) IsReady() bool {
@@ -208,7 +229,7 @@ func (m *Menu) Reset() {
 	m.readyToPlay = false
 	m.openSettings = false
 	m.openShop = false
-	m.cooldown = 15
+	m.cooldown = menuCooldownFrames
 }
 
 func (m *Menu) Layout(outsideWidth, outsideHeight int) (int, int) {

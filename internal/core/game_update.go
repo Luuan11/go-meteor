@@ -209,62 +209,71 @@ func (g *Game) updatePaused() error {
 
 func (g *Game) updateGameOver() error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyS) {
-		g.stateBeforePause = config.StateGameOver
-		g.shop.SetProgress(g.progress)
-		g.state = config.StateShop
+		g.openShopFromGameOver()
 		return nil
 	}
 
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
-		if g.statistics != nil && g.statistics.CheckSettingsClick() {
-			g.settingsMenu.Reset()
-			g.state = config.StateSettings
+		if g.handleGameOverMouseClick() {
 			return nil
 		}
-
-		if g.isMobile {
-			x, y := ebiten.CursorPosition()
-			btnX := 10
-			btnY := 10
-			btnSize := 35
-
-			if x >= btnX && x <= btnX+btnSize && y >= btnY && y <= btnY+btnSize {
-				g.stateBeforePause = config.StateGameOver
-				g.shop.SetProgress(g.progress)
-				g.state = config.StateShop
-				return nil
-			}
-		}
-
 		g.returnToMenu()
 		return nil
 	}
 
-	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) ||
-		inpututil.IsKeyJustPressed(ebiten.KeySpace) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) || inpututil.IsKeyJustPressed(ebiten.KeySpace) {
 		g.returnToMenu()
 		return nil
 	}
 
-	touchIDs := inpututil.AppendJustPressedTouchIDs(nil)
-	if len(touchIDs) > 0 {
-		for _, id := range touchIDs {
-			x, y := ebiten.TouchPosition(id)
-			btnX := 10
-			btnY := 10
-			btnSize := 35
-
-			if x >= btnX && x <= btnX+btnSize && y >= btnY && y <= btnY+btnSize {
-				g.stateBeforePause = config.StateGameOver
-				g.shop.SetProgress(g.progress)
-				g.state = config.StateShop
-				return nil
-			}
-		}
-		g.returnToMenu()
+	if g.handleGameOverTouch() {
+		return nil
 	}
 
 	return nil
+}
+
+func (g *Game) openShopFromGameOver() {
+	g.stateBeforePause = config.StateGameOver
+	g.shop.SetProgress(g.progress)
+	g.state = config.StateShop
+}
+
+func (g *Game) handleGameOverMouseClick() bool {
+	if g.statistics != nil && g.statistics.CheckSettingsClick() {
+		g.settingsMenu.Reset()
+		g.state = config.StateSettings
+		return true
+	}
+
+	if g.isMobile && g.isShopButtonClicked(ebiten.CursorPosition()) {
+		g.openShopFromGameOver()
+		return true
+	}
+
+	return false
+}
+
+func (g *Game) isShopButtonClicked(x, y int) bool {
+	const btnX, btnY, btnSize = 10, 10, 35
+	return x >= btnX && x <= btnX+btnSize && y >= btnY && y <= btnY+btnSize
+}
+
+func (g *Game) handleGameOverTouch() bool {
+	touchIDs := inpututil.AppendJustPressedTouchIDs(nil)
+	if len(touchIDs) == 0 {
+		return false
+	}
+
+	for _, id := range touchIDs {
+		x, y := ebiten.TouchPosition(id)
+		if g.isShopButtonClicked(x, y) {
+			g.openShopFromGameOver()
+			return true
+		}
+	}
+	g.returnToMenu()
+	return true
 }
 
 func (g *Game) updateShop() error {
@@ -290,6 +299,22 @@ func (g *Game) updateShop() error {
 			g.saveProgress()
 			g.shop.SetProgress(g.progress)
 		}
+	case ui.ShopActionBuySkin:
+		skinID := g.shop.GetSkinID()
+		skinCost := g.getSkinCost(skinID)
+		if skinCost > 0 && g.progress.BuySkin(skinID, skinCost) {
+			g.saveProgress()
+			g.shop.SetProgress(g.progress)
+		}
+	case ui.ShopActionEquipSkin:
+		skinID := g.shop.GetSkinID()
+		if g.progress.EquipSkin(skinID) {
+			g.saveProgress()
+			g.shop.SetProgress(g.progress)
+			if g.player != nil {
+				g.player.SetSkin(skinID)
+			}
+		}
 	}
 
 	return nil
@@ -299,6 +324,24 @@ func (g *Game) getShopItem(powerType string) *ui.ShopItem {
 	for i := range g.shop.Items {
 		if g.shop.Items[i].PowerType == powerType {
 			return &g.shop.Items[i]
+		}
+	}
+	return nil
+}
+
+func (g *Game) getSkinCost(skinID string) int {
+	for i := range g.shop.Skins {
+		if g.shop.Skins[i].ID == skinID {
+			return g.shop.Skins[i].Cost
+		}
+	}
+	return 0
+}
+
+func (g *Game) getSkinItem(skinID string) *ui.SkinItem {
+	for i := range g.shop.Skins {
+		if g.shop.Skins[i].ID == skinID {
+			return &g.shop.Skins[i]
 		}
 	}
 	return nil
@@ -378,45 +421,11 @@ func (g *Game) updateMeteors() {
 }
 
 func (g *Game) updateGameTimers() {
-	if g.superPowerActive {
-		g.superPowerTimer.Update()
-		if g.superPowerTimer.IsReady() {
-			g.superPowerTimer.Reset()
-			g.superPowerActive = false
-		}
-	}
-
-	if g.slowMotionActive {
-		g.slowMotionTimer.Update()
-		if g.slowMotionTimer.IsReady() {
-			g.slowMotionTimer.Reset()
-			g.slowMotionActive = false
-		}
-	}
-
-	if g.laserBeamActive {
-		g.laserBeamTimer.Update()
-		if g.laserBeamTimer.IsReady() {
-			g.laserBeamTimer.Reset()
-			g.laserBeamActive = false
-		}
-	}
-
-	if g.nukeActive {
-		g.nukeTimer.Update()
-		if g.nukeTimer.IsReady() {
-			g.nukeTimer.Reset()
-			g.nukeActive = false
-		}
-	}
-
-	if g.multiplierActive {
-		g.multiplierTimer.Update()
-		if g.multiplierTimer.IsReady() {
-			g.multiplierTimer.Reset()
-			g.multiplierActive = false
-		}
-	}
+	g.updatePowerTimer(&g.superPowerActive, g.superPowerTimer)
+	g.updatePowerTimer(&g.slowMotionActive, g.slowMotionTimer)
+	g.updatePowerTimer(&g.laserBeamActive, g.laserBeamTimer)
+	g.updatePowerTimer(&g.nukeActive, g.nukeTimer)
+	g.updatePowerTimer(&g.multiplierActive, g.multiplierTimer)
 
 	g.comboTimer.Update()
 	if g.comboTimer.IsReady() && g.combo > 0 && !g.nukeActive {
@@ -435,5 +444,16 @@ func (g *Game) updateGameTimers() {
 		if g.postBossInvincibilityTimer.IsReady() {
 			g.isPostBossInvincible = false
 		}
+	}
+}
+
+func (g *Game) updatePowerTimer(active *bool, timer *systems.Timer) {
+	if !*active {
+		return
+	}
+	timer.Update()
+	if timer.IsReady() {
+		timer.Reset()
+		*active = false
 	}
 }

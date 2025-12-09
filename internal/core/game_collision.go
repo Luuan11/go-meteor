@@ -9,6 +9,11 @@ import (
 )
 
 func (g *Game) checkCollisions() bool {
+	g.checkLaserMeteorCollisions()
+	return g.checkPlayerCollisions()
+}
+
+func (g *Game) checkLaserMeteorCollisions() {
 	meteorsToRemove := make(map[int]bool)
 	lasersToRemove := make(map[int]bool)
 
@@ -21,80 +26,111 @@ func (g *Game) checkCollisions() bool {
 				continue
 			}
 			if g.meteors[i].Collider().Intersects(g.lasers[j].Collider()) {
-				meteorType := g.meteors[i].GetType()
-				meteorPos := g.meteors[i].GetPosition()
-
-				if meteorType == entities.MeteorExplosive {
-					g.handleExplosiveMeteor(meteorPos, meteorsToRemove)
-				} else {
-					g.createExplosion(meteorPos, config.ParticleCount)
-				}
-
-				meteorsToRemove[i] = true
-				g.meteorsDestroyed++
-				if !g.laserBeamActive {
-					lasersToRemove[j] = true
-				}
-
-				g.combo++
-				g.comboTimer.Reset()
-				g.addScore(1)
-
-				assets.PlayExplosionSound()
-
-				if !g.laserBeamActive {
-					break
-				}
+				g.handleMeteorDestruction(i, j, meteorsToRemove, lasersToRemove)
 			}
 		}
 	}
 
 	g.filterMeteors(meteorsToRemove)
 	g.filterLasers(lasersToRemove)
+}
 
-	for i := len(g.meteors) - 1; i >= 0; i-- {
-		if g.meteors[i].Collider().Intersects(g.player.Collider()) {
-			if g.isPostBossInvincible {
-				continue
-			}
+func (g *Game) handleMeteorDestruction(meteorIdx, laserIdx int, meteorsToRemove, lasersToRemove map[int]bool) {
+	meteorType := g.meteors[meteorIdx].GetType()
+	meteorPos := g.meteors[meteorIdx].GetPosition()
 
-			meteorType := g.meteors[i].GetType()
-			meteorPos := g.meteors[i].GetPosition()
-
-			if meteorType == entities.MeteorIce {
-				g.player.ApplySlow()
-				g.notification.Show("FROZEN!", ui.NotificationShield)
-				g.createExplosion(meteorPos, config.ParticleCount)
-			} else if meteorType == entities.MeteorExplosive {
-				isDead := g.player.TakeDamage()
-
-				g.meteorPool.Put(g.meteors[i])
-				g.meteors = append(g.meteors[:i], g.meteors[i+1:]...)
-
-				g.handleExplosiveMeteorDirect(meteorPos)
-
-				if isDead {
-					return g.handleGameOver()
-				}
-				break
-			} else {
-				isDead := g.player.TakeDamage()
-				g.createExplosion(meteorPos, config.ParticleCount)
-
-				if isDead {
-					g.meteorPool.Put(g.meteors[i])
-					g.meteors = append(g.meteors[:i], g.meteors[i+1:]...)
-					return g.handleGameOver()
-				}
-			}
-
-			g.meteorPool.Put(g.meteors[i])
-			g.meteors = append(g.meteors[:i], g.meteors[i+1:]...)
-			g.addScreenShake(config.ScreenShakeDuration)
-			break
-		}
+	if meteorType == entities.MeteorExplosive {
+		g.handleExplosiveMeteor(meteorPos, meteorsToRemove)
+	} else {
+		g.createExplosion(meteorPos, config.ParticleCount)
 	}
 
+	meteorsToRemove[meteorIdx] = true
+	g.meteorsDestroyed++
+	if !g.laserBeamActive {
+		lasersToRemove[laserIdx] = true
+	}
+
+	g.combo++
+	g.comboTimer.Reset()
+	g.addScore(1)
+	assets.PlayExplosionSound()
+}
+
+func (g *Game) checkPlayerCollisions() bool {
+	if g.checkMeteorPlayerCollision() {
+		return true
+	}
+	g.checkPowerUpPlayerCollision()
+	g.checkCoinPlayerCollision()
+	return false
+}
+
+func (g *Game) checkMeteorPlayerCollision() bool {
+	for i := len(g.meteors) - 1; i >= 0; i-- {
+		if !g.meteors[i].Collider().Intersects(g.player.Collider()) {
+			continue
+		}
+
+		if g.isPostBossInvincible {
+			continue
+		}
+
+		meteorType := g.meteors[i].GetType()
+		meteorPos := g.meteors[i].GetPosition()
+
+		if meteorType == entities.MeteorIce {
+			g.handleIceMeteorCollision(i, meteorPos)
+		} else if meteorType == entities.MeteorExplosive {
+			return g.handleExplosiveMeteorCollision(i, meteorPos)
+		} else {
+			if g.handleNormalMeteorCollision(i, meteorPos) {
+				return true
+			}
+		}
+		break
+	}
+	return false
+}
+
+func (g *Game) handleIceMeteorCollision(meteorIdx int, meteorPos systems.Vector) {
+	g.player.ApplySlow()
+	g.notification.Show("FROZEN!", ui.NotificationShield)
+	g.createExplosion(meteorPos, config.ParticleCount)
+
+	g.meteorPool.Put(g.meteors[meteorIdx])
+	g.meteors = append(g.meteors[:meteorIdx], g.meteors[meteorIdx+1:]...)
+	g.addScreenShake(config.ScreenShakeDuration)
+}
+
+func (g *Game) handleExplosiveMeteorCollision(meteorIdx int, meteorPos systems.Vector) bool {
+	isDead := g.player.TakeDamage()
+
+	g.meteorPool.Put(g.meteors[meteorIdx])
+	g.meteors = append(g.meteors[:meteorIdx], g.meteors[meteorIdx+1:]...)
+
+	g.handleExplosiveMeteorDirect(meteorPos)
+
+	return isDead && g.handleGameOver()
+}
+
+func (g *Game) handleNormalMeteorCollision(meteorIdx int, meteorPos systems.Vector) bool {
+	isDead := g.player.TakeDamage()
+	g.createExplosion(meteorPos, config.ParticleCount)
+
+	if isDead {
+		g.meteorPool.Put(g.meteors[meteorIdx])
+		g.meteors = append(g.meteors[:meteorIdx], g.meteors[meteorIdx+1:]...)
+		return g.handleGameOver()
+	}
+
+	g.meteorPool.Put(g.meteors[meteorIdx])
+	g.meteors = append(g.meteors[:meteorIdx], g.meteors[meteorIdx+1:]...)
+	g.addScreenShake(config.ScreenShakeDuration)
+	return false
+}
+
+func (g *Game) checkPowerUpPlayerCollision() {
 	for i := len(g.powerUps) - 1; i >= 0; i-- {
 		if g.powerUps[i].Collider().Intersects(g.player.Collider()) {
 			powerType := g.powerUps[i].GetType()
@@ -106,7 +142,9 @@ func (g *Game) checkCollisions() bool {
 			break
 		}
 	}
+}
 
+func (g *Game) checkCoinPlayerCollision() {
 	for i := len(g.coins) - 1; i >= 0; i-- {
 		if g.coins[i].IsCollected() {
 			if g.coins[i].HasReachedTarget() {
@@ -129,8 +167,6 @@ func (g *Game) checkCollisions() bool {
 			break
 		}
 	}
-
-	return false
 }
 
 func (g *Game) filterMeteors(toRemove map[int]bool) {

@@ -91,56 +91,86 @@ func (g *Game) updateBossFight() error {
 
 	g.player.Update()
 	g.notification.Update()
-
 	g.updateGameTimers()
 
-	if g.boss != nil {
-		playerPos := g.player.Collider()
-		g.boss.SetPlayerPosition(systems.Vector{X: playerPos.X, Y: playerPos.Y})
+	g.updateBossAndMinions()
+	g.spawnBossPowerUps()
+	g.updateBossFightObjects()
+	g.checkBossCollisions()
+	g.cleanBossObjects()
 
-		if g.slowMotionActive {
-			g.boss.Update()
-		} else {
-			g.boss.Update()
-		}
+	g.player.UpdateTimers()
+	g.screenShake = max(0, g.screenShake-1)
 
-		for _, minion := range g.boss.GetMinions() {
-			if minion != nil {
-				minion.SetTarget(systems.Vector{X: playerPos.X, Y: playerPos.Y})
-				minion.Update()
+	return nil
+}
 
-				if minion.CanShoot() {
-					minion.Shoot()
-					minionPos := minion.GetPosition()
-					bp := g.bossProjectilePool.Get()
-					bp.Reset(minionPos.X, minionPos.Y+10)
-					g.bossProjectiles = append(g.bossProjectiles, bp)
-				}
-			}
-		}
-
-		if g.boss.CanShoot() && g.boss.GetPosition().Y >= config.BossShootMinY {
-			g.boss.Shoot()
-			pos := g.boss.GetPosition()
-
-			if g.boss.GetBossType() == config.BossSwarm {
-				bp1 := g.bossProjectilePool.Get()
-				bp1.Reset(pos.X-config.BossSwarmProjectileOffsetX, pos.Y+config.BossProjectileOffsetY)
-				g.bossProjectiles = append(g.bossProjectiles, bp1)
-
-				bp2 := g.bossProjectilePool.Get()
-				bp2.Reset(pos.X+config.BossSwarmProjectileOffsetX, pos.Y+config.BossProjectileOffsetY)
-				g.bossProjectiles = append(g.bossProjectiles, bp2)
-			} else {
-				bp := g.bossProjectilePool.Get()
-				bp.Reset(pos.X, pos.Y+config.BossProjectileOffsetY)
-				g.bossProjectiles = append(g.bossProjectiles, bp)
-			}
-
-			assets.PlayExplosionSound()
-		}
+func (g *Game) updateBossAndMinions() {
+	if g.boss == nil {
+		return
 	}
 
+	playerPos := g.player.Collider()
+	g.boss.SetPlayerPosition(systems.Vector{X: playerPos.X, Y: playerPos.Y})
+	g.boss.Update()
+
+	g.updateMinions(playerPos)
+	g.handleBossShooting()
+}
+
+func (g *Game) updateMinions(playerPos systems.Rect) {
+	for _, minion := range g.boss.GetMinions() {
+		if minion == nil {
+			continue
+		}
+
+		minion.SetTarget(systems.Vector{X: playerPos.X, Y: playerPos.Y})
+		minion.Update()
+
+		if minion.CanShoot() {
+			minion.Shoot()
+			minionPos := minion.GetPosition()
+			bp := g.bossProjectilePool.Get()
+			bp.Reset(minionPos.X, minionPos.Y+10)
+			g.bossProjectiles = append(g.bossProjectiles, bp)
+		}
+	}
+}
+
+func (g *Game) handleBossShooting() {
+	if !g.boss.CanShoot() || g.boss.GetPosition().Y < config.BossShootMinY {
+		return
+	}
+
+	g.boss.Shoot()
+	pos := g.boss.GetPosition()
+
+	if g.boss.GetBossType() == config.BossSwarm {
+		g.spawnSwarmProjectiles(pos)
+	} else {
+		g.spawnSingleProjectile(pos)
+	}
+
+	assets.PlayExplosionSound()
+}
+
+func (g *Game) spawnSwarmProjectiles(pos systems.Vector) {
+	bp1 := g.bossProjectilePool.Get()
+	bp1.Reset(pos.X-config.BossSwarmProjectileOffsetX, pos.Y+config.BossProjectileOffsetY)
+	g.bossProjectiles = append(g.bossProjectiles, bp1)
+
+	bp2 := g.bossProjectilePool.Get()
+	bp2.Reset(pos.X+config.BossSwarmProjectileOffsetX, pos.Y+config.BossProjectileOffsetY)
+	g.bossProjectiles = append(g.bossProjectiles, bp2)
+}
+
+func (g *Game) spawnSingleProjectile(pos systems.Vector) {
+	bp := g.bossProjectilePool.Get()
+	bp.Reset(pos.X, pos.Y+config.BossProjectileOffsetY)
+	g.bossProjectiles = append(g.bossProjectiles, bp)
+}
+
+func (g *Game) spawnBossPowerUps() {
 	g.updateAndSpawn(g.powerUpSpawnTimer, func() {
 		var p *entities.PowerUp
 
@@ -157,30 +187,21 @@ func (g *Game) updateBossFight() error {
 
 		g.powerUps = append(g.powerUps, p)
 	})
+}
 
+func (g *Game) updateBossFightObjects() {
 	for _, pu := range g.powerUps {
 		pu.Update()
 	}
-
 	for _, bp := range g.bossProjectiles {
 		bp.Update()
 	}
-
 	for _, l := range g.lasers {
 		l.Update()
 	}
-
 	for _, p := range g.particles {
 		p.Update()
 	}
-
-	g.checkBossCollisions()
-	g.cleanBossObjects()
-
-	g.player.UpdateTimers()
-	g.screenShake = max(0, g.screenShake-1)
-
-	return nil
 }
 
 func (g *Game) checkBossCollisions() {
@@ -188,51 +209,73 @@ func (g *Game) checkBossCollisions() {
 		return
 	}
 
+	g.checkLaserBossCollisions()
+	g.checkPowerUpCollisionsBoss()
+	g.checkBossProjectileCollisions()
+	g.checkMinionPlayerCollision()
+}
+
+func (g *Game) checkLaserBossCollisions() {
 	for i := len(g.lasers) - 1; i >= 0; i-- {
-		if g.lasers[i].Collider().Intersects(g.boss.Collider()) {
-			damage := g.lasers[i].GetDamage()
-			isDead := g.boss.TakeDamage(damage)
+		if g.checkLaserHitBoss(i) {
+			return
+		}
+		g.checkLaserHitMinions(i)
+	}
+}
 
-			g.createExplosion(g.boss.GetPosition(), 5)
+func (g *Game) checkLaserHitBoss(laserIdx int) bool {
+	if !g.lasers[laserIdx].Collider().Intersects(g.boss.Collider()) {
+		return false
+	}
 
-			if !g.lasers[i].IsLaserBeam() {
-				g.laserPool.Put(g.lasers[i])
-				g.lasers = append(g.lasers[:i], g.lasers[i+1:]...)
-			}
+	damage := g.lasers[laserIdx].GetDamage()
+	isDead := g.boss.TakeDamage(damage)
 
-			g.addScreenShake(config.ScreenShakeBossHit)
-			assets.PlayExplosionSound()
+	g.createExplosion(g.boss.GetPosition(), 5)
 
-			if isDead {
-				g.defeatBoss()
-				return
-			}
+	if !g.lasers[laserIdx].IsLaserBeam() {
+		g.laserPool.Put(g.lasers[laserIdx])
+		g.lasers = append(g.lasers[:laserIdx], g.lasers[laserIdx+1:]...)
+	}
+
+	g.addScreenShake(config.ScreenShakeBossHit)
+	assets.PlayExplosionSound()
+
+	if isDead {
+		g.defeatBoss()
+		return true
+	}
+	return false
+}
+
+func (g *Game) checkLaserHitMinions(laserIdx int) {
+	for mIdx, minion := range g.boss.GetMinions() {
+		if minion == nil || !g.lasers[laserIdx].Collider().Intersects(minion.Collider()) {
 			continue
 		}
 
-		for mIdx, minion := range g.boss.GetMinions() {
-			if minion != nil && g.lasers[i].Collider().Intersects(minion.Collider()) {
-				damage := g.lasers[i].GetDamage()
-				isDead := minion.TakeDamage(damage)
+		damage := g.lasers[laserIdx].GetDamage()
+		isDead := minion.TakeDamage(damage)
 
-				g.createExplosion(minion.GetPosition(), config.MinionParticles)
+		g.createExplosion(minion.GetPosition(), config.MinionParticles)
 
-				if !g.lasers[i].IsLaserBeam() {
-					g.laserPool.Put(g.lasers[i])
-					g.lasers = append(g.lasers[:i], g.lasers[i+1:]...)
-				}
-
-				assets.PlayExplosionSound()
-
-				if isDead {
-					g.score += config.PointsPerMinionKill
-					g.boss.RemoveMinion(mIdx)
-				}
-				break
-			}
+		if !g.lasers[laserIdx].IsLaserBeam() {
+			g.laserPool.Put(g.lasers[laserIdx])
+			g.lasers = append(g.lasers[:laserIdx], g.lasers[laserIdx+1:]...)
 		}
-	}
 
+		assets.PlayExplosionSound()
+
+		if isDead {
+			g.score += config.PointsPerMinionKill
+			g.boss.RemoveMinion(mIdx)
+		}
+		break
+	}
+}
+
+func (g *Game) checkPowerUpCollisionsBoss() {
 	for i := len(g.powerUps) - 1; i >= 0; i-- {
 		if g.powerUps[i].Collider().Intersects(g.player.Collider()) {
 			powerType := g.powerUps[i].GetType()
@@ -244,7 +287,9 @@ func (g *Game) checkBossCollisions() {
 			break
 		}
 	}
+}
 
+func (g *Game) checkBossProjectileCollisions() {
 	for i := len(g.bossProjectiles) - 1; i >= 0; i-- {
 		if g.bossProjectiles[i].Collider().Intersects(g.player.Collider()) {
 			isDead := g.player.TakeDamage()
@@ -262,23 +307,27 @@ func (g *Game) checkBossCollisions() {
 			break
 		}
 	}
+}
 
+func (g *Game) checkMinionPlayerCollision() {
 	for mIdx, minion := range g.boss.GetMinions() {
-		if minion != nil && minion.Collider().Intersects(g.player.Collider()) {
-			isDead := g.player.TakeDamage()
-			g.bossNoDamage = false
-			g.createExplosion(minion.GetPosition(), config.MinionParticles)
-			g.boss.RemoveMinion(mIdx)
-			assets.PlayExplosionSound()
-
-			g.addScreenShake(config.ScreenShakeDuration)
-
-			if isDead {
-				g.handleGameOver()
-				return
-			}
-			break
+		if minion == nil || !minion.Collider().Intersects(g.player.Collider()) {
+			continue
 		}
+
+		isDead := g.player.TakeDamage()
+		g.bossNoDamage = false
+		g.createExplosion(minion.GetPosition(), config.MinionParticles)
+		g.boss.RemoveMinion(mIdx)
+		assets.PlayExplosionSound()
+
+		g.addScreenShake(config.ScreenShakeDuration)
+
+		if isDead {
+			g.handleGameOver()
+			return
+		}
+		break
 	}
 }
 

@@ -59,6 +59,12 @@ func NewPlayer(game GameInterface) *Player {
 	}
 }
 
+func (p *Player) SetSkin(skinID string) {
+	if sprite, ok := assets.SkinMap[skinID]; ok {
+		p.sprite = sprite
+	}
+}
+
 func (p *Player) MoveLeft() {
 	speed := config.PlayerSpeed
 	if p.isSlowed {

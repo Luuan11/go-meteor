@@ -102,6 +102,14 @@ func (g *Game) activateNuke() {
 }
 
 func (g *Game) cleanObjects() {
+	g.cleanMeteors()
+	g.cleanLasers()
+	g.cleanPowerUps()
+	g.cleanParticles()
+	g.cleanCoins()
+}
+
+func (g *Game) cleanMeteors() {
 	validMeteors := make([]*entities.Meteor, 0, len(g.meteors))
 	for _, m := range g.meteors {
 		if m.IsOutOfScreen() {
@@ -111,7 +119,9 @@ func (g *Game) cleanObjects() {
 		}
 	}
 	g.meteors = validMeteors
+}
 
+func (g *Game) cleanLasers() {
 	validLasers := make([]*entities.Laser, 0, len(g.lasers))
 	for _, l := range g.lasers {
 		if l.IsOutOfScreen() {
@@ -121,7 +131,9 @@ func (g *Game) cleanObjects() {
 		}
 	}
 	g.lasers = validLasers
+}
 
+func (g *Game) cleanPowerUps() {
 	validPowerUps := make([]*entities.PowerUp, 0, len(g.powerUps))
 	for _, p := range g.powerUps {
 		if p.IsOutOfScreen() {
@@ -131,7 +143,9 @@ func (g *Game) cleanObjects() {
 		}
 	}
 	g.powerUps = validPowerUps
+}
 
+func (g *Game) cleanParticles() {
 	validParticles := make([]*effects.Particle, 0, len(g.particles))
 	for _, p := range g.particles {
 		if !p.IsDead() {
@@ -139,7 +153,9 @@ func (g *Game) cleanObjects() {
 		}
 	}
 	g.particles = validParticles
+}
 
+func (g *Game) cleanCoins() {
 	validCoins := make([]*entities.Coin, 0, len(g.coins))
 	for _, c := range g.coins {
 		if !c.IsOffScreen() {
@@ -183,6 +199,9 @@ func (g *Game) returnToMenu() {
 	g.particles = g.particles[:0]
 	g.bossProjectiles = g.bossProjectiles[:0]
 	g.player = entities.NewPlayer(g)
+	if g.progress != nil {
+		g.player.SetSkin(g.progress.EquippedSkin)
+	}
 	g.Reset()
 	g.menu.Reset()
 	g.state = config.StateMenu
@@ -192,6 +211,9 @@ func (g *Game) Reset() {
 	g.clearPools()
 
 	g.player = entities.NewPlayer(g)
+	if g.progress != nil {
+		g.player.SetSkin(g.progress.EquippedSkin)
+	}
 	g.meteors = g.meteors[:0]
 	g.lasers = g.lasers[:0]
 	g.powerUps = g.powerUps[:0]
