@@ -8,16 +8,16 @@
 ## 💬 About
 Interactive game project made entirely with GO, where you can control your player, destroy meteors, collect power-ups, all to increase your score.
 
-## 🎮 Game Features
+## 🎮 Game
 
 ### Power-Ups System
-- **Super Shot**: Triple shot with 2x damage (10s)
+- **Super Shot**: Triple shot with 2x damage
 - **Health**: Restores 1 life point
-- **Shield**: Temporary invincibility (10s)
-- **Slow Motion**: Slows down meteors (15s)
-- **Laser Beam**: Powerful penetrating shots with 3x damage (3.5s, Wave 5+)
-- **Nuke**: Clears screen for 5s while keeping combo (Wave 5+)
-- **Extra Life**: Grants 1 extra life, max 5 hearts (Wave 5+)
+- **Shield**: Temporary invincibility 
+- **Slow Motion**: Slows down meteors 
+- **Laser Beam**: Powerful penetrating shots with 3x damage
+- **Nuke**: Clears screen for 5s while keeping combo
+- **Extra Life**: Grants 1 extra life, max 5 hearts
 - **Score Multiplier**: 2x score bonus for 20 seconds
 
 ### Boss System
@@ -30,7 +30,7 @@ Interactive game project made entirely with GO, where you can control your playe
 
 ### Gameplay Systems
 - Combo System with Score Multiplier
-- Wave System with Progressive Difficulty (harder from wave 15+)
+- Wave System with Progressive Difficulty
 - Audio System (Background Music and Sound Effects)
 - Responsive Controls for Desktop and Mobile
 - Global Leaderboard with Top 10 Rankings
@@ -40,8 +40,9 @@ Interactive game project made entirely with GO, where you can control your playe
 - Go
 - Ebiten package
 - Firebase Realtime Database
+- Vercel in Backend
 
-### Architecture & Design Patterns
+## 📃 Architecture & Design Patterns
 - Clean Architecture with separated concerns
 - Object Pooling for performance optimization
 - State Machine for game flow management
