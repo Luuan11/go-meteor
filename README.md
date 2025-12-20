@@ -1,6 +1,6 @@
 # Go-meteor
 
-<img width="1564" height="709" alt="image" src="https://github.com/user-attachments/assets/415f16a6-f511-41fa-9ab0-6ae024d574ed" />
+<img width="1564" height="709" alt="image" src="https://github.com/user-attachments/assets/464d3619-28b5-4f5e-8537-7ac9606bdc6f" />
 
 ## <p align="center"> <a href="https://luuan11.github.io/go-meteor/">Click here to play this game!</a> </p>
 
