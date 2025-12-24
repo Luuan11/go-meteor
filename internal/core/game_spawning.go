@@ -200,6 +200,12 @@ func (g *Game) clearPools() {
 }
 
 func (g *Game) returnToMenu() {
+	g.prepareGameReset()
+	g.menu.Reset()
+	g.state = config.StateMenu
+}
+
+func (g *Game) prepareGameReset() {
 	g.clearPools()
 	g.lastScore = g.score
 	g.meteors = g.meteors[:0]
@@ -212,8 +218,6 @@ func (g *Game) returnToMenu() {
 		g.player.SetSkin(g.progress.EquippedSkin)
 	}
 	g.Reset()
-	g.menu.Reset()
-	g.state = config.StateMenu
 }
 
 func (g *Game) Reset() {

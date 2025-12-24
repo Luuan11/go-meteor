@@ -338,7 +338,7 @@ func (s *Shop) moveSelectionUp() {
 	if s.selectedIndex < 0 {
 		s.selectedIndex = len(s.AllItems) - 1
 	}
-	s.skipSeparator()
+	s.skipSeparatorBackward()
 	s.updateScroll()
 }
 
@@ -347,11 +347,11 @@ func (s *Shop) moveSelectionDown() {
 	if s.selectedIndex >= len(s.AllItems) {
 		s.selectedIndex = 0
 	}
-	s.skipSeparator()
+	s.skipSeparatorForward()
 	s.updateScroll()
 }
 
-func (s *Shop) skipSeparator() {
+func (s *Shop) skipSeparatorForward() {
 	if s.selectedIndex < 0 || s.selectedIndex >= len(s.AllItems) {
 		return
 	}
@@ -360,6 +360,19 @@ func (s *Shop) skipSeparator() {
 		s.selectedIndex++
 		if s.selectedIndex >= len(s.AllItems) {
 			s.selectedIndex = 0
+		}
+	}
+}
+
+func (s *Shop) skipSeparatorBackward() {
+	if s.selectedIndex < 0 || s.selectedIndex >= len(s.AllItems) {
+		return
+	}
+
+	if _, isSep := s.AllItems[s.selectedIndex].(string); isSep {
+		s.selectedIndex--
+		if s.selectedIndex < 0 {
+			s.selectedIndex = len(s.AllItems) - 1
 		}
 	}
 }

@@ -51,16 +51,12 @@ func (g *Game) updateMenu() error {
 	g.menu.Update()
 
 	if g.menu.ShouldOpenSettings() {
-		g.stateBeforePause = config.StateMenu
-		g.settingsMenu.Reset()
-		g.state = config.StateSettings
+		g.openSettings(config.StateMenu)
 		return nil
 	}
 
 	if g.menu.ShouldOpenShop() {
-		g.stateBeforePause = config.StateMenu
-		g.shop.SetProgress(g.progress)
-		g.state = config.StateShop
+		g.openShop(config.StateMenu)
 		return nil
 	}
 
@@ -180,13 +176,9 @@ func (g *Game) updatePaused() error {
 	case ui.PauseActionQuit:
 		g.returnToMenu()
 	case ui.PauseActionSettings:
-		g.stateBeforePause = config.StatePaused
-		g.settingsMenu.Reset()
-		g.state = config.StateSettings
+		g.openSettings(config.StatePaused)
 	case ui.PauseActionShop:
-		g.stateBeforePause = config.StatePaused
-		g.shop.SetProgress(g.progress)
-		g.state = config.StateShop
+		g.openShop(config.StatePaused)
 	}
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) || inpututil.IsKeyJustPressed(ebiten.KeyP) {
@@ -202,7 +194,7 @@ func (g *Game) updatePaused() error {
 
 func (g *Game) updateGameOver() error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyS) {
-		g.openShopFromGameOver()
+		g.openShop(config.StateGameOver)
 		return nil
 	}
 
@@ -210,12 +202,12 @@ func (g *Game) updateGameOver() error {
 		if g.handleGameOverMouseClick() {
 			return nil
 		}
-		g.returnToMenu()
+		g.startNewGame()
 		return nil
 	}
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) || inpututil.IsKeyJustPressed(ebiten.KeySpace) {
-		g.returnToMenu()
+		g.startNewGame()
 		return nil
 	}
 
@@ -226,21 +218,29 @@ func (g *Game) updateGameOver() error {
 	return nil
 }
 
+func (g *Game) startNewGame() {
+	g.prepareGameReset()
+	g.initNewGameSession()
+	g.state = config.StatePlaying
+}
+
 func (g *Game) openShopFromGameOver() {
-	g.stateBeforePause = config.StateGameOver
-	g.shop.SetProgress(g.progress)
-	g.state = config.StateShop
+	g.openShop(config.StateGameOver)
 }
 
 func (g *Game) handleGameOverMouseClick() bool {
 	if g.statistics != nil && g.statistics.CheckSettingsClick() {
-		g.settingsMenu.Reset()
-		g.state = config.StateSettings
+		g.openSettings(config.StateGameOver)
+		return true
+	}
+
+	if g.statistics != nil && g.statistics.CheckShopClick() {
+		g.openShop(config.StateGameOver)
 		return true
 	}
 
 	if g.isMobile && g.isShopButtonClicked(ebiten.CursorPosition()) {
-		g.openShopFromGameOver()
+		g.openShop(config.StateGameOver)
 		return true
 	}
 
@@ -261,12 +261,24 @@ func (g *Game) handleGameOverTouch() bool {
 	for _, id := range touchIDs {
 		x, y := ebiten.TouchPosition(id)
 		if g.isShopButtonClicked(x, y) {
-			g.openShopFromGameOver()
+			g.openShop(config.StateGameOver)
 			return true
 		}
 	}
-	g.returnToMenu()
+	g.startNewGame()
 	return true
+}
+
+func (g *Game) openShop(previousState config.GameState) {
+	g.stateBeforePause = previousState
+	g.shop.SetProgress(g.progress)
+	g.state = config.StateShop
+}
+
+func (g *Game) openSettings(previousState config.GameState) {
+	g.stateBeforePause = previousState
+	g.settingsMenu.Reset()
+	g.state = config.StateSettings
 }
 
 func (g *Game) updateShop() error {
@@ -322,22 +334,24 @@ func (g *Game) getShopItem(powerType string) *ui.ShopItem {
 	return nil
 }
 
-func (g *Game) getSkinCost(skinID string) int {
-	for i := range g.shop.Skins {
-		if g.shop.Skins[i].ID == skinID {
-			return g.shop.Skins[i].Cost
-		}
-	}
-	return 0
-}
-
-func (g *Game) getSkinItem(skinID string) *ui.SkinItem {
+func (g *Game) findSkin(skinID string) *ui.SkinItem {
 	for i := range g.shop.Skins {
 		if g.shop.Skins[i].ID == skinID {
 			return &g.shop.Skins[i]
 		}
 	}
 	return nil
+}
+
+func (g *Game) getSkinCost(skinID string) int {
+	if skin := g.findSkin(skinID); skin != nil {
+		return skin.Cost
+	}
+	return 0
+}
+
+func (g *Game) getSkinItem(skinID string) *ui.SkinItem {
+	return g.findSkin(skinID)
 }
 
 func (g *Game) updateSettings() error {

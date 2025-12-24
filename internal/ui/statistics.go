@@ -18,7 +18,9 @@ type Statistics struct {
 	wave              int
 	score             int
 	settingsButton    *IconButton
+	shopButton        *IconButton
 	openSettings      bool
+	openShop          bool
 }
 
 func NewStatistics(meteors, powerUps, wave, score int, survival time.Duration) *Statistics {
@@ -29,11 +31,18 @@ func NewStatistics(meteors, powerUps, wave, score int, survival time.Duration) *
 		wave:              wave,
 		score:             score,
 		openSettings:      false,
+		openShop:          false,
 		settingsButton: &IconButton{
 			x:    config.ScreenWidth - 50,
 			y:    10,
 			size: 35,
 			icon: CreateGearIcon(35),
+		},
+		shopButton: &IconButton{
+			x:    10,
+			y:    10,
+			size: 35,
+			icon: assets.CoinSprite,
 		},
 	}
 }
@@ -84,6 +93,7 @@ func (s *Statistics) Draw(screen *ebiten.Image, startY int) {
 	text.Draw(screen, timeText, assets.FontSmall, timeX, statsY, color.RGBA{100, 255, 100, 255})
 
 	s.drawSettingsButton(screen)
+	s.drawShopButton(screen)
 }
 
 func (s *Statistics) drawSettingsButton(screen *ebiten.Image) {
@@ -100,9 +110,36 @@ func (s *Statistics) drawSettingsButton(screen *ebiten.Image) {
 	screen.DrawImage(btn.icon, op)
 }
 
+func (s *Statistics) drawShopButton(screen *ebiten.Image) {
+	btn := s.shopButton
+	mouseX, mouseY := ebiten.CursorPosition()
+	isHovered := float64(mouseX) >= btn.x && float64(mouseX) <= btn.x+70 &&
+		float64(mouseY) >= btn.y && float64(mouseY) <= btn.y+btn.size
+
+	op := &ebiten.DrawImageOptions{}
+	if isHovered {
+		op.ColorScale.ScaleWithColor(color.RGBA{255, 215, 0, 255})
+	}
+	op.GeoM.Translate(btn.x, btn.y)
+	screen.DrawImage(btn.icon, op)
+
+	var shopTextColor color.Color = color.White
+	if isHovered {
+		shopTextColor = color.RGBA{255, 215, 0, 255}
+	}
+	text.Draw(screen, "Shop", assets.FontSmall, int(btn.x)+40, int(btn.y)+22, shopTextColor)
+}
+
 func (s *Statistics) CheckSettingsClick() bool {
 	btn := s.settingsButton
 	mouseX, mouseY := ebiten.CursorPosition()
 	return float64(mouseX) >= btn.x && float64(mouseX) <= btn.x+btn.size &&
+		float64(mouseY) >= btn.y && float64(mouseY) <= btn.y+btn.size
+}
+
+func (s *Statistics) CheckShopClick() bool {
+	btn := s.shopButton
+	mouseX, mouseY := ebiten.CursorPosition()
+	return float64(mouseX) >= btn.x && float64(mouseX) <= btn.x+70 &&
 		float64(mouseY) >= btn.y && float64(mouseY) <= btn.y+btn.size
 }

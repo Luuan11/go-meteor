@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"go-meteor/internal/config"
-	"go-meteor/internal/effects"
 	"go-meteor/internal/entities"
 	"go-meteor/internal/systems"
 	"go-meteor/internal/ui"
@@ -131,7 +130,8 @@ func (g *Game) updateMinions(playerPos systems.Rect) {
 			minion.Shoot()
 			minionPos := minion.GetPosition()
 			bp := g.bossProjectilePool.Get()
-			bp.Reset(minionPos.X, minionPos.Y+10)
+			const projectileYOffset = 10.0
+			bp.Reset(minionPos.X, minionPos.Y+projectileYOffset)
 			g.bossProjectiles = append(g.bossProjectiles, bp)
 		}
 	}
@@ -409,31 +409,7 @@ func (g *Game) cleanBossObjects() {
 	}
 	g.bossProjectiles = validBossProjectiles
 
-	validPowerUps := make([]*entities.PowerUp, 0, len(g.powerUps))
-	for _, pu := range g.powerUps {
-		if pu.IsOutOfScreen() {
-			g.powerUpPool.Put(pu)
-		} else {
-			validPowerUps = append(validPowerUps, pu)
-		}
-	}
-	g.powerUps = validPowerUps
-
-	validLasers := make([]*entities.Laser, 0, len(g.lasers))
-	for _, l := range g.lasers {
-		if l.IsOutOfScreen() {
-			g.laserPool.Put(l)
-		} else {
-			validLasers = append(validLasers, l)
-		}
-	}
-	g.lasers = validLasers
-
-	validParticles := make([]*effects.Particle, 0, len(g.particles))
-	for _, p := range g.particles {
-		if !p.IsDead() {
-			validParticles = append(validParticles, p)
-		}
-	}
-	g.particles = validParticles
+	g.cleanPowerUps()
+	g.cleanLasers()
+	g.cleanParticles()
 }

@@ -271,7 +271,7 @@ func (g *Game) drawGameOver(screen *ebiten.Image) {
 		g.statistics.Draw(screen, 220)
 	}
 
-	tryAgainText := "Press ENTER to try again"
+	tryAgainText := "Press ENTER to play again"
 	tryAgainX := (config.ScreenWidth - measureText(tryAgainText, assets.FontUi)) / 2
 	drawText(screen, tryAgainText, assets.FontUi, tryAgainX, 480, color.White)
 
